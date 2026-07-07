@@ -1,10 +1,10 @@
 # BMX Freestyle Polska
 
-MVP systemu zapisów dla BMX Freestyle Polska działający pod domeną `https://bmxfreestyle.pl`.
+MVP systemu zapisów dla BMX Freestyle Polska działający docelowo pod domeną `https://bmxfreestyle.pl`.
 
 Projekt obejmuje publiczny formularz zapisów, panel organizatora, statusy zgłoszeń, eksport CSV oraz podstawowe zarządzanie konfiguracją zawodów: wydarzeniami, kategoriami i zgodami.
 
-## Uruchomienie lokalne
+## Lokalnie
 
 ```bash
 npm install
@@ -18,22 +18,22 @@ Domyślny adres lokalny:
 http://127.0.0.1:5178
 ```
 
-Jeżeli port jest zajęty, można uruchomić podgląd na innym porcie:
+Jeżeli port jest zajęty:
 
 ```bash
 PORT=5179 npm run dev
 ```
 
-## Lokalne logowanie admina
+Lokalnie działa mock API w `dev-server.js`. Mock trzyma dane w pamięci, więc wydarzenia, kategorie, zgody i zgłoszenia dodane lokalnie znikają po restarcie serwera.
 
-Mock API w `dev-server.js` ma lokalne konto organizatora:
+Lokalne konto mock admina:
 
 - login: `admin`
 - hasło: `admin`
 
-Lokalny mock trzyma dane w pamięci. Wydarzenia, kategorie, zgody i zgłoszenia dodane lokalnie znikają po restarcie serwera.
+To konto działa tylko w lokalnym mocku. Produkcja i staging wymagają `ADMIN_LOGIN` oraz `ADMIN_PASSWORD`.
 
-## Publiczne ścieżki
+## Publiczne Ścieżki
 
 - `/` — strona startowa.
 - `/zawody` — lista wydarzeń.
@@ -42,7 +42,7 @@ Lokalny mock trzyma dane w pamięci. Wydarzenia, kategorie, zgody i zgłoszenia 
 - `/regulamin` — miejsce na regulamin i dokumenty.
 - `/faq` — podstawowe FAQ.
 
-## Ścieżki admina
+## Ścieżki Admina
 
 - `/admin` — logowanie i dashboard.
 - `/admin/zgloszenia` — lista zgłoszeń, filtry, szczegóły, zmiana statusów i eksport CSV.
@@ -50,7 +50,7 @@ Lokalny mock trzyma dane w pamięci. Wydarzenia, kategorie, zgody i zgłoszenia 
 - `/admin/kategorie` — dodawanie, edycja i dezaktywacja kategorii wydarzenia.
 - `/admin/zgody` — dodawanie, edycja i dezaktywacja zgód wydarzenia.
 
-## Status zapisów
+## Statusy I Okno Zapisów
 
 Publiczny formularz pozwala wysłać zgłoszenie tylko wtedy, gdy wydarzenie ma status:
 
@@ -58,18 +58,9 @@ Publiczny formularz pozwala wysłać zgłoszenie tylko wtedy, gdy wydarzenie ma 
 registration_open
 ```
 
-Jeżeli status to `planned`, `registration_closed`, `cancelled` albo `finished`, formularz pokazuje komunikat i blokuje wysyłkę. Backend `POST /api/register` waliduje to ponownie, więc nie da się ominąć blokady przez ręczne wysłanie requestu.
+Jeżeli status to `planned`, `registration_closed`, `cancelled` albo `finished`, formularz pokazuje komunikat i blokuje wysyłkę. Backend `POST /api/register` waliduje to ponownie.
 
-## Okno zapisów
-
-Wydarzenie może mieć ustawione:
-
-- `registration_starts_at`
-- `registration_ends_at`
-
-Jeżeli te pola istnieją, formularz i backend sprawdzają, czy aktualna data mieści się w oknie zapisów. Poza tym oknem wysyłka jest blokowana nawet przy statusie `registration_open`.
-
-## Status zgłoszenia
+Jeżeli wydarzenie ma ustawione `registration_starts_at` i/lub `registration_ends_at`, formularz oraz backend sprawdzają, czy aktualna data mieści się w oknie zapisów. Poza tym oknem wysyłka jest blokowana nawet przy statusie `registration_open`.
 
 Nowe zgłoszenie dostaje status:
 
@@ -77,51 +68,118 @@ Nowe zgłoszenie dostaje status:
 pending_review
 ```
 
-Oznacza to, że zgłoszenie zostało przyjęte do systemu, ale organizator musi je zweryfikować. Panel pozwala zmienić status na `accepted`, `needs_info`, `rejected` albo `waitlist` i zapisać notatkę statusową. Jeżeli Resend jest skonfigurowany, system próbuje wysłać mail statusowy.
+Organizator może później zmienić status na `accepted`, `needs_info`, `rejected` albo `waitlist` i dopisać notatkę statusową.
 
-## Supabase i produkcja
+## Deployment Na Vercel
 
-Pliki w `api/` są przygotowane pod serverless/Vercel i używają Supabase przez `SUPABASE_SERVICE_ROLE_KEY`. Lokalny `dev-server.js` używa mock API.
+Projekt jest przygotowany jako statyczny frontend z endpointami serverless w katalogu `api/`.
 
-Aby przełączyć produkcję na prawdziwe Supabase, ustaw zmienne środowiskowe:
+Ważne pliki:
 
-- `APP_URL=https://bmxfreestyle.pl`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `RESEND_API_KEY`
-- `MAIL_FROM`
-- `MAIL_REPLY_TO`
-- `ADMIN_NOTIFICATION_EMAIL`
-- `ADMIN_LOGIN`
-- `ADMIN_PASSWORD`
-- `ADMIN_AUTH_SECRET`
+- `index.html` i `app.js` — publiczna aplikacja.
+- `admin.html` i `admin.js` — panel organizatora.
+- `api/` — endpointy serverless dla Vercel.
+- `vercel.json` — rewrites dla odświeżania tras frontendowych.
 
-Brak konfiguracji Resend nie blokuje rejestracji ani zmiany statusu. API zwróci wtedy informację, że mail został pominięty.
+`vercel.json` kieruje:
 
-## Migracja i seed
+- `/zawody/*` i `/zapisy/*` do `index.html`,
+- `/admin` i `/admin/*` do `admin.html`,
+- `/checkin` do `checkin.html`.
 
-1. Uruchom migrację:
+Endpointy `/api/*` nie są przepisywane do frontendu i pozostają funkcjami serverless Vercel.
 
-```sql
-sql/supabase-bmx-schema.sql
-```
+Minimalny proces wdrożenia:
 
-2. Uruchom seed:
+1. Wypchnij repo do GitHuba albo podłącz katalog w Vercel CLI.
+2. Utwórz projekt Vercel.
+3. Ustaw zmienne środowiskowe z sekcji poniżej.
+4. Wdróż staging.
+5. Uruchom checklistę z `DEPLOYMENT_CHECKLIST.md`.
+6. Po pozytywnym smoke-teście podepnij `bmxfreestyle.pl`.
+7. Ustaw `APP_URL=https://bmxfreestyle.pl` i wykonaj ponowny deploy.
 
-```sql
-sql/supabase-bmx-seed.sql
-```
+## Zmienne Środowiskowe
 
-Schema zawiera tabele:
+Przykład bez sekretów jest w `.env.example`.
+
+Wymagane na stagingu i produkcji:
+
+- `APP_URL` — bazowy adres używany w linkach mailowych, np. stagingowy URL Vercel albo `https://bmxfreestyle.pl`.
+- `SUPABASE_URL` — URL projektu Supabase.
+- `SUPABASE_SERVICE_ROLE_KEY` — service role key Supabase używany wyłącznie w serverless API.
+- `RESEND_API_KEY` — API key do wysyłki maili przez Resend.
+- `MAIL_FROM` — nadawca, np. `BMX Freestyle Polska <zapisy@bmxfreestyle.pl>`.
+- `MAIL_REPLY_TO` — adres odpowiedzi.
+- `ADMIN_NOTIFICATION_EMAIL` — adres organizatora do przyszłych powiadomień admina.
+- `ADMIN_LOGIN` — produkcyjny login organizatora.
+- `ADMIN_PASSWORD` — mocne produkcyjne hasło organizatora.
+- `ADMIN_AUTH_SECRET` — długi losowy sekret do podpisywania sesji admina.
+
+Kod używa nazw `ADMIN_LOGIN`, `ADMIN_PASSWORD` i `ADMIN_AUTH_SECRET`. Nie używa `ADMIN_USERNAME` ani `ADMIN_SESSION_SECRET`.
+
+Nie commituj prawdziwego `.env`. Service role key nie może trafić do kodu publicznego frontendu.
+
+## Supabase
+
+Produkcja i staging korzystają z Supabase. Lokalny `dev-server.js` jest tylko mockiem do pracy lokalnej.
+
+Konfiguracja:
+
+1. Utwórz nowy projekt Supabase.
+2. Wejdź w SQL Editor.
+3. Uruchom `sql/supabase-bmx-schema.sql`.
+4. Uruchom `sql/supabase-bmx-seed.sql`.
+5. Skopiuj project URL jako `SUPABASE_URL`.
+6. Skopiuj service role key jako `SUPABASE_SERVICE_ROLE_KEY`.
+7. Nie używaj anon key zamiast service role key w backendzie.
+
+Schema tworzy:
 
 - `events`
 - `event_categories`
 - `event_consents`
 - `registrations`
 
-Seed dodaje wydarzenie testowe `Puchar Polski BMX Freestyle — Runda 1`, kategorie `PRO`, `AMATOR`, `JUNIOR` oraz wymagane zgody, w tym wymaganą zgodę na wizerunek.
+Seed dodaje wydarzenie `Puchar Polski BMX Freestyle — Runda 1`, kategorie `PRO`, `AMATOR`, `JUNIOR` oraz wymagane zgody, w tym zgodę na wizerunek.
 
-Kody kategorii nie są ograniczone wyłącznie do `PRO`, `AMATOR`, `JUNIOR`, więc w przyszłości można dodać kolejne kategorie bez przebudowy schematu. MVP nie aktywuje osobnych kategorii kobiet.
+Kody kategorii nie są ograniczone wyłącznie do trzech kategorii MVP, więc kolejne kategorie można dodać później bez przebudowy schematu.
+
+## Resend
+
+Konfiguracja maili:
+
+1. Utwórz API key w Resend.
+2. Ustaw `RESEND_API_KEY` w Vercel.
+3. Ustaw `MAIL_FROM`.
+4. Ustaw `MAIL_REPLY_TO`.
+5. Ustaw `ADMIN_NOTIFICATION_EMAIL`.
+6. Zweryfikuj domenę wysyłkową w Resend, jeżeli wysyłasz z adresu w domenie `bmxfreestyle.pl`.
+
+Brak konfiguracji Resend nie blokuje rejestracji ani zmiany statusu. API zwróci wtedy informację, że mail został pominięty. Na stagingu warto jednak sprawdzić pełny przepływ mailowy.
+
+Linki w mailach korzystają z `APP_URL`:
+
+- staging: `APP_URL=https://ADRES-STAGINGU-VERCEL`
+- produkcja: `APP_URL=https://bmxfreestyle.pl`
+
+## Smoke Testy
+
+Pełna lista testów po deploymencie jest w:
+
+```text
+DEPLOYMENT_CHECKLIST.md
+```
+
+Minimum przed podpięciem domeny:
+
+- publiczne trasy ładują się po bezpośrednim wejściu i odświeżeniu,
+- formularz pobiera wydarzenie, kategorie i zgody z Supabase,
+- zgłoszenie PRO, AMATOR i JUNIOR działa zgodnie z walidacją,
+- panel admina wymaga logowania,
+- zmiana statusu i eksport CSV działają,
+- maile rejestracyjne i statusowe dochodzą,
+- linki w mailach prowadzą do adresu z `APP_URL`.
 
 ## Poza MVP
 

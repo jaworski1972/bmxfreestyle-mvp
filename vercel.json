@@ -6,6 +6,7 @@
     { "source": "/regulamin", "destination": "/index.html" },
     { "source": "/faq", "destination": "/index.html" },
     { "source": "/wyniki", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/:path*", "destination": "/admin.html" },
     { "source": "/checkin", "destination": "/checkin.html" }
   ]
