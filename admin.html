@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin — BMX Freestyle Polska</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="admin-body">
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark">BMX</span>
+        <span>BMX Freestyle Polska</span>
+      </a>
+      <nav aria-label="Panel organizatora">
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/zgloszenia">Zgłoszenia</a>
+        <a href="/admin/zawody">Zawody</a>
+        <a href="/admin/kategorie">Kategorie</a>
+        <a href="/admin/zgody">Zgody</a>
+      </nav>
+      <button class="header-cta admin-logout" id="logoutButton" type="button" hidden>Wyloguj</button>
+    </header>
+
+    <main class="admin-shell">
+      <section class="login-card" id="loginView">
+        <p class="eyebrow">Panel organizatora</p>
+        <h1>Logowanie</h1>
+        <p>Zaloguj się, aby zobaczyć zgłoszenia, zmieniać statusy i eksportować CSV.</p>
+        <form class="login-form" id="loginForm">
+          <label>Login<input name="login" autocomplete="username" required /></label>
+          <label>Hasło<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="submit-btn" type="submit">Zaloguj</button>
+          <p class="form-message" id="loginMessage" role="status"></p>
+        </form>
+      </section>
+
+      <section id="adminView" hidden>
+        <section class="admin-hero">
+          <p class="eyebrow">Panel organizatora</p>
+          <h1>BMX Freestyle Polska</h1>
+          <p id="adminIntro">Obsługa zgłoszeń, statusów i eksportu CSV.</p>
+        </section>
+
+        <section class="dashboard-grid" id="dashboardGrid" aria-label="Statystyki zgłoszeń"></section>
+
+        <section class="admin-card registrations-admin admin-panel" data-admin-panel="registrations">
+          <div class="section-heading">
+            <p class="eyebrow">Zgłoszenia</p>
+            <h2>Lista zgłoszeń</h2>
+            <p>Filtrowanie działa po stronie panelu na danych pobranych z API.</p>
+          </div>
+
+          <div class="admin-filters">
+            <label>Szukaj<input id="adminSearch" placeholder="Imię, nazwisko, e-mail, telefon, klub, miasto" /></label>
+            <label>Wydarzenie<select id="adminEventFilter"><option value="">Wszystkie</option></select></label>
+            <label>Status
+              <select id="adminStatusFilter">
+                <option value="">Wszystkie</option>
+                <option value="pending_review">Oczekuje na weryfikację</option>
+                <option value="accepted">Zaakceptowane</option>
+                <option value="needs_info">Wymaga uzupełnienia</option>
+                <option value="rejected">Odrzucone</option>
+                <option value="waitlist">Lista rezerwowa</option>
+              </select>
+            </label>
+            <label>Kategoria
+              <select id="adminCategoryFilter">
+                <option value="">Wszystkie</option>
+                <option value="PRO">PRO</option>
+                <option value="AMATOR">AMATOR</option>
+                <option value="JUNIOR">JUNIOR</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="quick-filters" aria-label="Szybkie filtry">
+            <label><input type="checkbox" id="minorOnlyFilter" /> Tylko niepełnoletni</label>
+            <label><input type="checkbox" id="proOnlyFilter" /> Tylko PRO</label>
+            <label><input type="checkbox" id="actionOnlyFilter" /> Wymagające działania</label>
+          </div>
+
+          <div class="admin-actions">
+            <button class="secondary-btn" id="refreshButton" type="button">Odśwież</button>
+            <button class="primary-btn" id="exportButton" type="button">Eksport CSV</button>
+          </div>
+
+          <p class="form-message" id="adminMessage" role="status"></p>
+          <div class="registrations-table-wrap">
+            <table class="registrations-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Zawodnik</th>
+                  <th>Kategoria</th>
+                  <th>Wydarzenie</th>
+                  <th>Status</th>
+                  <th>Wiek</th>
+                  <th>Miasto</th>
+                  <th>Klub/team</th>
+                  <th>Kontakt</th>
+                  <th>Opiekun</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="registrationsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="admin-card admin-panel" data-admin-panel="events">
+          <div class="section-heading">
+            <p class="eyebrow">Konfiguracja</p>
+            <h2>Zawody</h2>
+            <p>Dodawanie i edycja wydarzeń, statusu zapisów, limitów, regulaminu i komunikatu organizatora.</p>
+          </div>
+          <div class="management-layout">
+            <div>
+              <div class="admin-actions">
+                <button class="secondary-btn" id="newEventButton" type="button">Nowe wydarzenie</button>
+                <button class="secondary-btn" id="refreshEventsButton" type="button">Odśwież</button>
+              </div>
+              <div class="management-list" id="eventsList"></div>
+            </div>
+            <form class="management-form" id="eventForm">
+              <input type="hidden" name="id" />
+              <div class="field-grid">
+                <label>Slug<input name="slug" required /></label>
+                <label>Nazwa<input name="name" required /></label>
+                <label>Typ
+                  <select name="type" required>
+                    <option value="polish_cup">Puchar Polski</option>
+                    <option value="polish_championship">Mistrzostwa Polski</option>
+                    <option value="other">Inne</option>
+                  </select>
+                </label>
+                <label>Numer rundy<input name="roundNumber" type="number" min="0" /></label>
+                <label>Start zawodów<input name="startsAt" type="datetime-local" required /></label>
+                <label>Koniec zawodów<input name="endsAt" type="datetime-local" /></label>
+                <label>Miasto<input name="city" required /></label>
+                <label>Venue<input name="venue" required /></label>
+                <label>Status wydarzenia
+                  <select name="status" required>
+                    <option value="planned">Planowane</option>
+                    <option value="registration_open">Zapisy otwarte</option>
+                    <option value="registration_closed">Zapisy zamknięte</option>
+                    <option value="cancelled">Odwołane</option>
+                    <option value="finished">Zakończone</option>
+                  </select>
+                </label>
+                <label>Limit miejsc<input name="capacityTotal" type="number" min="0" /></label>
+                <label>Start zapisów<input name="registrationStartsAt" type="datetime-local" /></label>
+                <label>Koniec zapisów<input name="registrationEndsAt" type="datetime-local" /></label>
+                <label>Junior max wiek<input name="juniorMaxAge" type="number" min="0" value="15" /></label>
+                <label class="switch-field"><input name="requireLicenseForPro" type="checkbox" checked /> Licencja wymagana dla PRO</label>
+                <label class="full">Link do regulaminu<input name="rulesUrl" type="url" /></label>
+                <label class="full">Opis<textarea name="description" rows="3"></textarea></label>
+                <label class="full">Komunikat organizatora<textarea name="organizerMessage" rows="3"></textarea></label>
+                <label class="full">Treść regulaminu<textarea name="rulesBody" rows="5"></textarea></label>
+              </div>
+              <button class="primary-btn" type="submit">Zapisz wydarzenie</button>
+              <p class="form-message" id="eventMessage" role="status"></p>
+            </form>
+          </div>
+        </section>
+
+        <section class="admin-card admin-panel" data-admin-panel="categories">
+          <div class="section-heading">
+            <p class="eyebrow">Konfiguracja</p>
+            <h2>Kategorie</h2>
+            <p>Kategorie są przypisane do wydarzenia. MVP ma PRO, AMATOR i JUNIOR, ale model pozwala dodać kolejne.</p>
+          </div>
+          <label class="admin-wide-label">Wydarzenie<select id="categoryEventSelect"></select></label>
+          <div class="management-layout">
+            <div>
+              <div class="admin-actions">
+                <button class="secondary-btn" id="newCategoryButton" type="button">Nowa kategoria</button>
+              </div>
+              <div class="management-list" id="categoriesList"></div>
+            </div>
+            <form class="management-form" id="categoryForm">
+              <input type="hidden" name="id" />
+              <input type="hidden" name="eventId" />
+              <div class="field-grid">
+                <label>Kod<input name="code" required /></label>
+                <label>Nazwa<input name="name" required /></label>
+                <label>Kolejność<input name="sortOrder" type="number" value="0" /></label>
+                <label>Limit miejsc<input name="capacity" type="number" min="0" /></label>
+                <label>Wiek min<input name="ageMin" type="number" min="0" /></label>
+                <label>Wiek max<input name="ageMax" type="number" min="0" /></label>
+                <label>Gender scope
+                  <select name="genderScope">
+                    <option value="open">Open</option>
+                    <option value="men">Men</option>
+                    <option value="women">Women</option>
+                    <option value="girls">Girls</option>
+                  </select>
+                </label>
+                <label class="switch-field"><input name="requiresLicense" type="checkbox" /> Wymaga licencji</label>
+                <label class="switch-field"><input name="isActive" type="checkbox" checked /> Aktywna</label>
+                <label class="full">Opis<textarea name="description" rows="4"></textarea></label>
+              </div>
+              <button class="primary-btn" type="submit">Zapisz kategorię</button>
+              <p class="form-message" id="categoryMessage" role="status"></p>
+            </form>
+          </div>
+        </section>
+
+        <section class="admin-card admin-panel" data-admin-panel="consents">
+          <div class="section-heading">
+            <p class="eyebrow">Konfiguracja</p>
+            <h2>Zgody</h2>
+            <p>Zgoda na wizerunek pozostaje wymagana w domyślnej konfiguracji MVP.</p>
+          </div>
+          <label class="admin-wide-label">Wydarzenie<select id="consentEventSelect"></select></label>
+          <div class="management-layout">
+            <div>
+              <div class="admin-actions">
+                <button class="secondary-btn" id="newConsentButton" type="button">Nowa zgoda</button>
+              </div>
+              <div class="management-list" id="consentsList"></div>
+            </div>
+            <form class="management-form" id="consentForm">
+              <input type="hidden" name="id" />
+              <input type="hidden" name="eventId" />
+              <div class="field-grid">
+                <label>Kod<input name="code" required /></label>
+                <label>Nazwa<input name="label" required /></label>
+                <label>Kolejność<input name="sortOrder" type="number" value="0" /></label>
+                <label class="switch-field"><input name="required" type="checkbox" checked /> Wymagana</label>
+                <label class="switch-field"><input name="guardianOnly" type="checkbox" /> Tylko opiekun</label>
+                <label class="switch-field"><input name="athleteAdultOnly" type="checkbox" /> Tylko pełnoletni</label>
+                <label class="switch-field"><input name="active" type="checkbox" checked /> Aktywna</label>
+                <label class="full">Treść zgody<textarea name="body" rows="5" required></textarea></label>
+              </div>
+              <button class="primary-btn" type="submit">Zapisz zgodę</button>
+              <p class="form-message" id="consentMessage" role="status"></p>
+            </form>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog class="registration-modal" id="registrationModal">
+      <div class="modal-shell">
+        <button class="modal-close" id="modalCloseButton" type="button" aria-label="Zamknij">×</button>
+        <div id="registrationDetails"></div>
+      </div>
+    </dialog>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

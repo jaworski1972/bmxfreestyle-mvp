@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/zawody/:path*", "destination": "/index.html" },
+    { "source": "/zapisy/:path*", "destination": "/index.html" },
+    { "source": "/potwierdz", "destination": "/index.html" },
+    { "source": "/regulamin", "destination": "/index.html" },
+    { "source": "/faq", "destination": "/index.html" },
+    { "source": "/wyniki", "destination": "/index.html" },
+    { "source": "/admin/:path*", "destination": "/admin.html" },
+    { "source": "/checkin", "destination": "/checkin.html" }
+  ]
+}

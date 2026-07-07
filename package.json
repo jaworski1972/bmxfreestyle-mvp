@@ -1,0 +1,14 @@
+{
+  "name": "bmx-freestyle-polska",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BMX Freestyle Polska — MVP systemu zapisów.",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "check": "node --check app.js && node --check admin.js && node --check dev-server.js && node --check api/events.js && node --check api/categories.js && node --check api/consents.js && node --check api/register.js && node --check api/registrations.js && node --check api/export.js && node --check api/admin-auth.js && node --check lib/admin-auth.js && node --check lib/mail.js && node --check lib/phone-normalization.js && node --check lib/supabase.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "resend": "^4.0.0"
+  }
+}
