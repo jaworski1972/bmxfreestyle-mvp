@@ -16,6 +16,7 @@
       <nav aria-label="Biuro zawodów">
         <a href="/admin">Panel</a>
         <a href="/admin/zgloszenia">Zgłoszenia</a>
+        <a class="is-active" href="/checkin">Check-in</a>
         <a href="/admin/listy-startowe">Listy startowe</a>
       </nav>
       <button class="header-cta admin-logout" id="logoutButton" type="button" hidden>Wyloguj</button>
@@ -51,7 +52,7 @@
             <label>Status
               <select id="statusFilter">
                 <option value="">Wszyscy</option>
-                <option value="not_checked_in">Nieodprawieni</option>
+                <option value="not_checked_in">Brak check-in</option>
                 <option value="checked_in">Obecni</option>
                 <option value="absent">Nieobecni</option>
               </select>

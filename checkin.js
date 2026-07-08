@@ -45,10 +45,10 @@ function setMessage(element, message, type = "info") {
 
 function checkinLabel(status) {
   return {
-    not_checked_in: "Nieodprawiony",
+    not_checked_in: "Brak check-in",
     checked_in: "Obecny",
     absent: "Nieobecny",
-  }[status] || "Nieodprawiony";
+  }[status] || "Brak check-in";
 }
 
 function formatDateTime(value) {
@@ -112,7 +112,7 @@ function renderCounters() {
     ["Razem", counts.total],
     ["Obecni", counts.checked],
     ["Nieobecni", counts.absent],
-    ["Nieodprawieni", counts.waiting],
+    ["Brak check-in", counts.waiting],
   ].map(([label, value]) => `
     <article class="dashboard-tile">
       <strong>${value}</strong>

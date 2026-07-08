@@ -94,10 +94,10 @@ function statusLabel(status) {
 
 function checkinLabel(status) {
   return {
-    not_checked_in: "Nieodprawiony",
+    not_checked_in: "Brak check-in",
     checked_in: "Obecny",
     absent: "Nieobecny",
-  }[status] || status || "Nieodprawiony";
+  }[status] || status || "Brak check-in";
 }
 
 function categoryCode(registration) {
@@ -153,12 +153,25 @@ function currentPanelName() {
   if (path.includes("/admin/kategorie")) return "categories";
   if (path.includes("/admin/zgody")) return "consents";
   if (path.includes("/admin/listy-startowe")) return "startlists";
+  if (path.includes("/admin/eksport")) return "registrations";
   return "registrations";
 }
 
 function showPanel(name = currentPanelName()) {
   adminPanels.forEach((panel) => {
     panel.hidden = panel.dataset.adminPanel !== name;
+  });
+  markActiveAdminNav();
+}
+
+function markActiveAdminNav() {
+  const path = window.location.pathname;
+  document.querySelectorAll(".site-header nav a").forEach((link) => {
+    const linkPath = new URL(link.href).pathname;
+    const active = linkPath === "/admin"
+      ? path === "/admin"
+      : path.startsWith(linkPath) || (linkPath === "/admin/zgloszenia" && path === "/admin/eksport");
+    link.classList.toggle("is-active", active);
   });
 }
 
@@ -249,7 +262,7 @@ function renderEventOptions() {
 function renderRegistrations() {
   const rows = filteredRegistrations();
   if (!rows.length) {
-    registrationsTable.innerHTML = '<tr><td colspan="11">Brak zgłoszeń dla wybranych filtrów.</td></tr>';
+    registrationsTable.innerHTML = '<tr><td colspan="11">Brak danych do wyświetlenia dla wybranych filtrów.</td></tr>';
     return;
   }
 
@@ -325,14 +338,14 @@ async function loadEvents() {
 function renderEventsManagement() {
   if (!eventsList) return;
   if (!eventsState.length) {
-    eventsList.innerHTML = '<p class="form-message">Brak wydarzeń.</p>';
+    eventsList.innerHTML = '<p class="form-message">Brak danych do wyświetlenia.</p>';
     return;
   }
 
   eventsList.innerHTML = eventsState.map((event) => `
     <button class="management-item" type="button" data-event-id="${escapeHtml(event.id)}">
       <strong>${escapeHtml(event.name)}</strong>
-      <span>${escapeHtml(eventTypeLabel(event.type))} · ${escapeHtml(formatDate(event.startsAt))} · ${escapeHtml(eventStatusLabel(event.status))}</span>
+      <span>${escapeHtml(eventTypeLabel(event.type))} · ${escapeHtml(formatDate(event.startsAt))} · <mark>${escapeHtml(eventStatusLabel(event.status))}</mark></span>
       <small>${escapeHtml(event.city || "-")} · limit: ${escapeHtml(event.capacityTotal ?? "-")}</small>
     </button>
   `).join("");
@@ -405,7 +418,7 @@ async function loadStartList() {
 function renderStartList() {
   if (!startListTable) return;
   if (!startListState.length) {
-    startListTable.innerHTML = '<tr><td colspan="7">Brak zaakceptowanych zawodników w tej kategorii.</td></tr>';
+    startListTable.innerHTML = '<tr><td colspan="7">Brak zaakceptowanych zawodników w tej kategorii. Lista startowa jest pusta.</td></tr>';
     return;
   }
 
@@ -605,10 +618,10 @@ function renderCategoriesManagement() {
   categoriesList.innerHTML = categoriesState.length ? categoriesState.map((category) => `
     <button class="management-item" type="button" data-category-id="${escapeHtml(category.id)}">
       <strong>${escapeHtml(category.code)} · ${escapeHtml(category.name)}</strong>
-      <span>${category.isActive ? "Aktywna" : "Nieaktywna"} · limit: ${escapeHtml(category.capacity ?? "-")} · sort: ${escapeHtml(category.sortOrder ?? 0)}</span>
-      <small>${category.requiresLicense ? "Licencja wymagana" : "Bez licencji"} · wiek: ${escapeHtml(category.ageMin ?? "-")} - ${escapeHtml(category.ageMax ?? "-")}</small>
+      <span><mark>${category.isActive ? "Aktywna" : "Nieaktywna"}</mark> · limit: ${escapeHtml(category.capacity ?? "-")} · sort: ${escapeHtml(category.sortOrder ?? 0)}</span>
+      <small>${category.requiresLicense ? "Wymaga licencji" : "Bez licencji"} · zakres wieku: ${escapeHtml(category.ageMin ?? "-")} - ${escapeHtml(category.ageMax ?? "-")}</small>
     </button>
-  `).join("") : '<p class="form-message">Brak kategorii dla wydarzenia.</p>';
+  `).join("") : '<p class="form-message">Brak danych do wyświetlenia dla tego wydarzenia.</p>';
 }
 
 function resetCategoryForm() {
@@ -693,10 +706,10 @@ function renderConsentsManagement() {
   consentsList.innerHTML = consentsState.length ? consentsState.map((consent) => `
     <button class="management-item" type="button" data-consent-id="${escapeHtml(consent.id)}">
       <strong>${escapeHtml(consent.label)}</strong>
-      <span>${escapeHtml(consent.code)} · ${consent.active ? "Aktywna" : "Nieaktywna"} · ${consent.required ? "Wymagana" : "Opcjonalna"}</span>
-      <small>${consent.guardianOnly ? "Tylko opiekun" : "Zawodnik/opiekun"} · sort: ${escapeHtml(consent.sortOrder ?? 0)}</small>
+      <span>${escapeHtml(consent.code)} · <mark>${consent.active ? "Aktywna" : "Nieaktywna"}</mark> · ${consent.required ? "Wymagana" : "Opcjonalna"}</span>
+      <small>${consent.guardianOnly ? "Tylko opiekun" : "Zawodnik/opiekun"} · ${consent.athleteAdultOnly ? "tylko pełnoletni zawodnik" : "bez ograniczenia pełnoletności"} · sort: ${escapeHtml(consent.sortOrder ?? 0)}</small>
     </button>
-  `).join("") : '<p class="form-message">Brak zgód dla wydarzenia.</p>';
+  `).join("") : '<p class="form-message">Brak danych do wyświetlenia dla tego wydarzenia.</p>';
 }
 
 function resetConsentForm() {

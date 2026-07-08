@@ -153,6 +153,14 @@ function statusLabel(status) {
   }[status] || status;
 }
 
+function statusClass(status) {
+  return `status-${String(status || "planned").replaceAll("_", "-")}`;
+}
+
+function categoryChips(categories = fallbackCategories) {
+  return categories.map((category) => `<span class="category-chip">${escapeHtml(category.code)}</span>`).join("");
+}
+
 function registrationClosedReason(event, now = new Date()) {
   if (event.status !== "registration_open") return "Zapisy na to wydarzenie nie są obecnie otwarte.";
   const startsAt = event.registrationStartsAt || event.registration_starts_at;
@@ -206,6 +214,7 @@ async function loadConsents(eventId) {
 function categoryCards() {
   return fallbackCategories.map((category) => `
     <article class="category-card">
+      <span class="card-kicker">${category.requiresLicense ? "Licencja" : "Open"}</span>
       <strong>${category.code}</strong>
       <p>${category.description}</p>
       ${category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Bez licencji</span>'}
@@ -220,12 +229,12 @@ async function renderHome() {
     <section class="hero">
       <img src="/assets/bmx-hero.png" alt="Zawodnik BMX Freestyle w skateparku" />
       <div class="hero-content">
-        <p class="eyebrow">BMX Freestyle Polska</p>
+        <p class="eyebrow">Puchar Polski BMX Freestyle</p>
         <h1>Zapisy na Puchar Polski BMX Freestyle</h1>
-        <p>Nowy fundament systemu zapisów dla zawodów BMX Freestyle w Polsce: wydarzenia, kategorie, zgody, panel organizatora i eksport danych.</p>
+        <p>Oficjalny system zgłoszeń BMX Freestyle Polska. Wybierz zawody, kategorię i wyślij zgłoszenie do weryfikacji organizatora.</p>
         <div class="hero-actions">
-          <a class="primary-btn" href="/zapisy/${nextEvent.slug}" data-link>Zapisz się</a>
-          <a class="secondary-btn" href="/zawody" data-link>Zobacz zawody</a>
+          <a class="primary-btn" href="/zapisy/${nextEvent.slug}" data-link>Rozpocznij rejestrację</a>
+          <a class="secondary-btn" href="/zawody" data-link>Zobacz kalendarz</a>
         </div>
       </div>
     </section>
@@ -233,7 +242,7 @@ async function renderHome() {
       <div class="section-heading">
         <p class="eyebrow">Kategorie MVP</p>
         <h2>PRO, AMATOR, JUNIOR</h2>
-        <p>Bez osobnych kategorii damskich na MVP, ale model danych ma pole gender_scope, aby dodać je bez przebudowy systemu.</p>
+        <p>Trzy czytelne ścieżki startu: licencyjne PRO, otwarty AMATOR i JUNIOR dla młodszych zawodników.</p>
       </div>
       <div class="category-grid">${categoryCards()}</div>
     </section>
@@ -247,13 +256,13 @@ async function renderHome() {
     <section class="section">
       <div class="section-heading">
         <p class="eyebrow">Flow zgłoszenia</p>
-        <h2>Krótko i czytelnie</h2>
+        <h2>Jak działa zgłoszenie</h2>
       </div>
       <div class="steps">
         <article class="step-card"><span>1</span><h3>Wybierz zawody</h3><p>Publiczna lista aktywnych wydarzeń pod główną domeną.</p></article>
         <article class="step-card"><span>2</span><h3>Wybierz kategorię</h3><p>PRO, AMATOR albo JUNIOR, zgodnie z konfiguracją wydarzenia.</p></article>
         <article class="step-card"><span>3</span><h3>Uzupełnij dane</h3><p>Licencja tylko dla PRO, opiekun tylko gdy wymagany.</p></article>
-        <article class="step-card"><span>4</span><h3>Potwierdź</h3><p>Status zgłoszenia trafia do panelu organizatora.</p></article>
+        <article class="step-card"><span>4</span><h3>Czekaj na status</h3><p>Organizator potwierdzi przyjęcie lub poprosi o uzupełnienie danych.</p></article>
       </div>
     </section>
     ${faqSection()}
@@ -267,7 +276,10 @@ function eventCard(event) {
         <p class="event-meta">${formatDateRange(event)} · ${escapeHtml(event.city)} · ${escapeHtml(event.venue)}</p>
         <h3>${escapeHtml(event.name)}</h3>
         <p>${escapeHtml(event.description || "Szczegóły wydarzenia zostaną uzupełnione przez organizatora.")}</p>
-        <span class="status-pill">${statusLabel(event.status)}</span>
+        <div class="event-badges">
+          <span class="status-pill ${statusClass(event.status)}">${statusLabel(event.status)}</span>
+          ${categoryChips()}
+        </div>
       </div>
       <div class="hero-actions">
         <a class="secondary-btn" href="/zawody/${event.slug}" data-link>Szczegóły</a>
@@ -280,12 +292,14 @@ function eventCard(event) {
 async function renderEvents() {
   const events = await loadEvents();
   app.innerHTML = `
-    <section class="section">
+    <section class="page-hero compact-hero">
       <div class="section-heading">
         <p class="eyebrow">Kalendarz</p>
         <h1>Zawody</h1>
-        <p>Lista wydarzeń BMX Freestyle Polska. Dane docelowo pochodzą z Supabase przez `/api/events`.</p>
+        <p>Aktualne wydarzenia BMX Freestyle Polska, status zapisów i szybkie przejście do rejestracji.</p>
       </div>
+    </section>
+    <section class="section section-tight">
       <div class="event-list">${events.map(eventCard).join("")}</div>
     </section>
   `;
@@ -299,20 +313,24 @@ async function renderEventDetails(slug) {
   }
 
   app.innerHTML = `
-    <section class="section">
+    <section class="page-hero event-hero">
       <div class="section-heading">
-        <p class="eyebrow">${statusLabel(event.status)}</p>
+        <p class="eyebrow">${escapeHtml(statusLabel(event.status))}</p>
         <h1>${escapeHtml(event.name)}</h1>
         <p>${formatDateRange(event)} · ${escapeHtml(event.city)} · ${escapeHtml(event.venue)}</p>
+        <div class="event-badges">
+          <span class="status-pill ${statusClass(event.status)}">${statusLabel(event.status)}</span>
+          ${categoryChips()}
+        </div>
+        <div class="hero-actions">
+          <a class="primary-btn" href="/zapisy/${event.slug}" data-link>Przejdź do zapisu</a>
+          <a class="secondary-btn" href="/regulamin" data-link>Regulamin</a>
+        </div>
       </div>
+    </section>
+    <section class="section section-tight">
       <div class="notice">${escapeHtml(event.organizerMessage || "Komunikat organizatora pojawi się tutaj.")}</div>
-      <section class="section">
-        <div class="category-grid">${categoryCards()}</div>
-      </section>
-      <div class="hero-actions">
-        <a class="primary-btn" href="/zapisy/${event.slug}" data-link>Przejdź do zapisu</a>
-        <a class="secondary-btn" href="/regulamin" data-link>Regulamin</a>
-      </div>
+      <div class="category-grid event-category-grid">${categoryCards()}</div>
     </section>
   `;
 }
@@ -342,13 +360,16 @@ async function renderSignupPlaceholder(slug) {
       : "";
 
   app.innerHTML = `
-    <section class="section signup-section">
+    <section class="page-hero signup-hero">
       <div class="event-summary-card">
         <p class="eyebrow">${statusLabel(event.status)}</p>
         <h1>${escapeHtml(event.name)}</h1>
         <p>${formatDateRange(event)} · ${escapeHtml(event.city)} · ${escapeHtml(event.venue)}</p>
         ${event.organizerMessage ? `<div class="notice">${escapeHtml(event.organizerMessage)}</div>` : ""}
       </div>
+    </section>
+
+    <section class="section section-tight signup-section">
 
       ${statusMessage ? `<div class="form-alert">${escapeHtml(statusMessage)}</div>` : ""}
 
@@ -712,11 +733,16 @@ function setupRegistrationForm({ event, categories, consents }) {
       const state = formState();
       app.innerHTML = `
         <section class="placeholder-page success-page">
+          <div class="success-mark" aria-hidden="true">✓</div>
           <p class="eyebrow">Zgłoszenie wysłane</p>
-          <h1>Oczekuje na weryfikację</h1>
-          <p>Zgłoszenie zawodnika ${escapeHtml(form.elements.firstName.value)} ${escapeHtml(form.elements.lastName.value)} zostało przyjęte do systemu.</p>
+          <h1>Zgłoszenie przyjęte do systemu</h1>
+          <p>Zgłoszenie zawodnika ${escapeHtml(form.elements.firstName.value)} ${escapeHtml(form.elements.lastName.value)} zostało zapisane i czeka na decyzję organizatora.</p>
           <div class="notice">
             Status: oczekuje na weryfikację organizatora. Nie jest to jeszcze automatyczna akceptacja startu.
+          </div>
+          <div class="success-info">
+            <p>Potwierdzenie zostało wysłane e-mailem.</p>
+            <p>Organizator poinformuje o zmianie statusu zgłoszenia.</p>
           </div>
           <p>Kategoria: <strong>${escapeHtml(state.category.code)}</strong></p>
           <div class="hero-actions">
@@ -742,7 +768,7 @@ function renderConfirmationPlaceholder() {
     <section class="placeholder-page">
       <p class="eyebrow">Potwierdzenie</p>
       <h1>Potwierdzenie zgłoszenia</h1>
-      <p>Placeholder pod obsługę tokenu z linku e-mail.</p>
+      <p>Po kliknięciu linku z wiadomości e-mail pokażemy tutaj status potwierdzenia zgłoszenia.</p>
     </section>
   `;
 }
@@ -752,7 +778,7 @@ function renderRules() {
     <section class="placeholder-page">
       <p class="eyebrow">Dokumenty</p>
       <h1>Regulamin</h1>
-      <p>Tu trafi regulamin zawodów, informacje RODO oraz dokumenty dla zawodnika i opiekuna.</p>
+      <p>Regulamin zawodów, informacje RODO oraz dokumenty dla zawodnika i opiekuna będą publikowane przy wydarzeniu.</p>
     </section>
   `;
 }
@@ -767,7 +793,7 @@ function faqSection() {
       <div class="faq-list">
         <article class="faq-item"><h3>Czy PRO wymaga licencji?</h3><p>Tak. Model danych ma pola typu licencji, numeru licencji, UCI ID i kraju federacji.</p></article>
         <article class="faq-item"><h3>Czy są osobne kategorie kobiet?</h3><p>Nie w MVP. Struktura kategorii ma jednak gender_scope, więc można je dodać później.</p></article>
-        <article class="faq-item"><h3>Gdzie działa system?</h3><p>Całość jest projektowana dla domeny https://bmxfreestyle.pl.</p></article>
+        <article class="faq-item"><h3>Czy wysłanie formularza oznacza akceptację?</h3><p>Nie. Zgłoszenie trafia do weryfikacji organizatora, a status przyjęcia zostanie potwierdzony osobno.</p></article>
       </div>
     </section>
   `;
@@ -782,7 +808,7 @@ function renderResults() {
     <section class="placeholder-page">
       <p class="eyebrow">Przyszły moduł</p>
       <h1>Wyniki</h1>
-      <p>Wyniki, rankingi sezonu i panel sędziego są poza zakresem obecnego etapu.</p>
+      <p>Wyniki i rankingi pojawią się w kolejnych etapach rozwoju systemu BMX Freestyle Polska.</p>
     </section>
   `;
 }
@@ -821,3 +847,16 @@ document.addEventListener("click", (event) => {
 
 window.addEventListener("popstate", router);
 router();
+
+function markActivePublicNav() {
+  const path = window.location.pathname;
+  document.querySelectorAll(".site-header nav a").forEach((link) => {
+    const linkPath = new URL(link.href).pathname;
+    const active = linkPath === "/" ? path === "/" : path.startsWith(linkPath);
+    link.classList.toggle("is-active", active);
+  });
+}
+
+window.addEventListener("popstate", markActivePublicNav);
+document.addEventListener("click", () => requestAnimationFrame(markActivePublicNav));
+markActivePublicNav();
