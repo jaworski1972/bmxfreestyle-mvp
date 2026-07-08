@@ -7,12 +7,68 @@
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
-    <main class="placeholder-page">
-      <p class="eyebrow">Biuro zawodów</p>
-      <h1>Check-in</h1>
-      <p>Placeholder pod przyszły widok odprawy zawodników, QR i statusów zgłoszeń.</p>
-      <a class="primary-btn" href="/">Wróć na stronę główną</a>
+  <body class="admin-body checkin-body">
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark">BMX</span>
+        <span>BMX Freestyle Polska</span>
+      </a>
+      <nav aria-label="Biuro zawodów">
+        <a href="/admin">Panel</a>
+        <a href="/admin/zgloszenia">Zgłoszenia</a>
+        <a href="/admin/listy-startowe">Listy startowe</a>
+      </nav>
+      <button class="header-cta admin-logout" id="logoutButton" type="button" hidden>Wyloguj</button>
+    </header>
+
+    <main class="admin-shell">
+      <section class="login-card" id="loginView">
+        <p class="eyebrow">Biuro zawodów</p>
+        <h1>Check-in</h1>
+        <p>Zaloguj się, aby odprawiać zaakceptowanych zawodników.</p>
+        <form class="login-form" id="loginForm">
+          <label>Login<input name="login" autocomplete="username" required /></label>
+          <label>Hasło<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="submit-btn" type="submit">Zaloguj</button>
+          <p class="form-message" id="loginMessage" role="status"></p>
+        </form>
+      </section>
+
+      <section id="checkinView" hidden>
+        <section class="admin-hero checkin-hero">
+          <p class="eyebrow">Biuro zawodów</p>
+          <h1>Check-in</h1>
+          <p>Odprawa zawodników zaakceptowanych do startu.</p>
+        </section>
+
+        <section class="dashboard-grid checkin-counters" id="checkinCounters" aria-label="Liczniki check-in"></section>
+
+        <section class="admin-card checkin-panel">
+          <div class="admin-filters">
+            <label>Wydarzenie<select id="eventSelect"></select></label>
+            <label>Kategoria<select id="categorySelect"></select></label>
+            <label>Szukaj<input id="searchInput" placeholder="Imię, nazwisko, telefon, miasto, klub" /></label>
+            <label>Status
+              <select id="statusFilter">
+                <option value="">Wszyscy</option>
+                <option value="not_checked_in">Nieodprawieni</option>
+                <option value="checked_in">Obecni</option>
+                <option value="absent">Nieobecni</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="admin-actions">
+            <button class="secondary-btn" id="refreshButton" type="button">Odśwież</button>
+            <a class="secondary-btn" href="/admin/listy-startowe">Listy startowe</a>
+          </div>
+
+          <p class="form-message" id="checkinMessage" role="status"></p>
+          <div class="checkin-list" id="checkinList"></div>
+        </section>
+      </section>
     </main>
+
+    <script src="/checkin.js"></script>
   </body>
 </html>

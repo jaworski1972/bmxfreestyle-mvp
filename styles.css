@@ -820,6 +820,22 @@ h3 {
   background: var(--white);
 }
 
+.start-list-table {
+  min-width: 980px;
+}
+
+.compact-input {
+  width: 86px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fbfcfd;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 820;
+}
+
 .registrations-table small {
   color: var(--muted);
 }
@@ -858,6 +874,76 @@ h3 {
 .status-waitlist {
   background: #eaf1ff;
   color: #174ea6;
+}
+
+.checkin-checked_in {
+  background: #ecffd1;
+  color: #315900;
+}
+
+.checkin-absent {
+  background: #fff0ef;
+  color: #912018;
+}
+
+.checkin-not_checked_in {
+  background: #eef2f7;
+  color: #30363f;
+}
+
+.checkin-list {
+  display: grid;
+  gap: 12px;
+}
+
+.checkin-row {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.checkin-main,
+.checkin-meta,
+.checkin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkin-main strong {
+  display: block;
+  font-size: 1.15rem;
+}
+
+.checkin-main span,
+.checkin-meta span {
+  color: var(--muted);
+}
+
+.checkin-meta {
+  justify-content: flex-start;
+}
+
+.checkin-meta span {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 0.92rem;
+}
+
+.checkin-actions {
+  justify-content: flex-start;
+}
+
+.checkin-actions .primary-btn,
+.checkin-actions .secondary-btn {
+  min-height: 40px;
 }
 
 .login-card {

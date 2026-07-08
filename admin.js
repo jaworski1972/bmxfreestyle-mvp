@@ -38,11 +38,23 @@ const consentsList = document.querySelector("#consentsList");
 const consentForm = document.querySelector("#consentForm");
 const consentMessage = document.querySelector("#consentMessage");
 const newConsentButton = document.querySelector("#newConsentButton");
+const startListEventSelect = document.querySelector("#startListEventSelect");
+const startListCategorySelect = document.querySelector("#startListCategorySelect");
+const startListTable = document.querySelector("#startListTable");
+const startListMessage = document.querySelector("#startListMessage");
+const startListRefreshButton = document.querySelector("#startListRefreshButton");
+const orderByCreatedButton = document.querySelector("#orderByCreatedButton");
+const orderByNameButton = document.querySelector("#orderByNameButton");
+const orderRandomButton = document.querySelector("#orderRandomButton");
+const saveStartOrderButton = document.querySelector("#saveStartOrderButton");
+const exportStartListButton = document.querySelector("#exportStartListButton");
 
 let registrationsState = [];
 let eventsState = [];
 let categoriesState = [];
 let consentsState = [];
+let startListCategoriesState = [];
+let startListState = [];
 let currentUser = null;
 
 function escapeHtml(value) {
@@ -78,6 +90,14 @@ function statusLabel(status) {
     waitlist: "Lista rezerwowa",
     new: "Nowe",
   }[status] || status || "-";
+}
+
+function checkinLabel(status) {
+  return {
+    not_checked_in: "Nieodprawiony",
+    checked_in: "Obecny",
+    absent: "Nieobecny",
+  }[status] || status || "Nieodprawiony";
 }
 
 function categoryCode(registration) {
@@ -132,6 +152,7 @@ function currentPanelName() {
   if (path.includes("/admin/zawody")) return "events";
   if (path.includes("/admin/kategorie")) return "categories";
   if (path.includes("/admin/zgody")) return "consents";
+  if (path.includes("/admin/listy-startowe")) return "startlists";
   return "registrations";
 }
 
@@ -319,12 +340,167 @@ function renderEventsManagement() {
 
 function renderEventSelects() {
   const options = eventsState.map((event) => `<option value="${escapeHtml(event.id)}">${escapeHtml(event.name)}</option>`).join("");
-  [categoryEventSelect, consentEventSelect].forEach((select) => {
+  [categoryEventSelect, consentEventSelect, startListEventSelect].forEach((select) => {
     if (!select) return;
     const selected = select.value;
     select.innerHTML = options;
     if (eventsState.some((event) => event.id === selected)) select.value = selected;
   });
+}
+
+async function loadStartListCategories() {
+  if (!startListEventSelect || !startListCategorySelect) return;
+  const eventId = startListEventSelect.value || eventsState[0]?.id;
+  if (!eventId) {
+    startListCategoriesState = [];
+    startListCategorySelect.innerHTML = "";
+    renderStartList();
+    return;
+  }
+
+  const response = await fetch(`/api/categories?eventId=${encodeURIComponent(eventId)}`, { headers: authHeaders() });
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać kategorii.");
+
+  startListCategoriesState = payload.categories || [];
+  const selected = startListCategorySelect.value;
+  startListCategorySelect.innerHTML = startListCategoriesState
+    .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.code)} · ${escapeHtml(category.name)}</option>`)
+    .join("");
+  if (startListCategoriesState.some((category) => category.id === selected)) startListCategorySelect.value = selected;
+  else if (startListCategoriesState[0]) startListCategorySelect.value = startListCategoriesState[0].id;
+}
+
+async function loadStartList() {
+  if (!startListEventSelect || !startListCategorySelect) return;
+  const eventId = startListEventSelect.value;
+  const categoryId = startListCategorySelect.value;
+  if (!eventId || !categoryId) {
+    startListState = [];
+    renderStartList();
+    setMessage(startListMessage, "Wybierz wydarzenie i kategorię.", "info");
+    return;
+  }
+
+  try {
+    setMessage(startListMessage, "Ładuję listę startową...", "info");
+    const params = new URLSearchParams({ eventId, categoryId });
+    const response = await fetch(`/api/start-list?${params}`, { headers: authHeaders() });
+    const payload = await response.json();
+    if (response.status === 403 || response.status === 401) {
+      clearSession();
+      showLogin("Sesja wygasła. Zaloguj się ponownie.");
+      return;
+    }
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać listy.");
+    startListState = payload.registrations || [];
+    renderStartList();
+    setMessage(startListMessage, `Załadowano zawodników: ${startListState.length}`, "success");
+  } catch (error) {
+    setMessage(startListMessage, error.message || "Nie udało się pobrać listy.", "error");
+    renderStartList();
+  }
+}
+
+function renderStartList() {
+  if (!startListTable) return;
+  if (!startListState.length) {
+    startListTable.innerHTML = '<tr><td colspan="7">Brak zaakceptowanych zawodników w tej kategorii.</td></tr>';
+    return;
+  }
+
+  const sorted = [...startListState].sort((first, second) => {
+    const firstOrder = Number(first.startOrder || 999999);
+    const secondOrder = Number(second.startOrder || 999999);
+    if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+    return `${first.lastName} ${first.firstName}`.localeCompare(`${second.lastName} ${second.firstName}`, "pl");
+  });
+
+  startListTable.innerHTML = sorted.map((registration) => `
+    <tr>
+      <td><input class="compact-input" type="number" min="1" inputmode="numeric" value="${escapeHtml(registration.startOrder || "")}" data-start-order-id="${escapeHtml(registration.id)}" aria-label="Kolejność startowa ${escapeHtml(registration.fullName)}" /></td>
+      <td><input class="compact-input" value="${escapeHtml(registration.bibNumber || "")}" data-bib-id="${escapeHtml(registration.id)}" aria-label="Numer startowy ${escapeHtml(registration.fullName)}" /></td>
+      <td><strong>${escapeHtml(registration.fullName)}</strong><br><small>${escapeHtml(registration.birthDate || "-")} · ${escapeHtml(registration.age || "-")} lat · ${escapeHtml(registration.category?.code || "")}</small></td>
+      <td>${escapeHtml(registration.city || "-")}<br><small>${escapeHtml(registration.country || "")}</small></td>
+      <td>${escapeHtml(registration.clubTeam || "-")}</td>
+      <td><span class="status-chip checkin-${escapeHtml(registration.checkinStatus || "not_checked_in")}">${escapeHtml(checkinLabel(registration.checkinStatus))}</span></td>
+      <td>${escapeHtml(registration.phone || "-")}<br><small>${escapeHtml(registration.email || "")}</small></td>
+    </tr>
+  `).join("");
+}
+
+function assignStartOrder(mode) {
+  if (!startListState.length) return;
+  const rows = [...startListState];
+  if (mode === "name") {
+    rows.sort((first, second) => `${first.lastName} ${first.firstName}`.localeCompare(`${second.lastName} ${second.firstName}`, "pl"));
+  } else if (mode === "random") {
+    rows.sort(() => Math.random() - 0.5);
+  } else {
+    rows.sort((first, second) => new Date(first.createdAt || 0) - new Date(second.createdAt || 0));
+  }
+  rows.forEach((registration, index) => {
+    registration.startOrder = index + 1;
+  });
+  startListState = rows;
+  renderStartList();
+}
+
+async function saveStartOrder() {
+  const eventId = startListEventSelect.value;
+  const categoryId = startListCategorySelect.value;
+  const list = startListState.map((registration) => {
+    const orderInput = startListTable.querySelector(`[data-start-order-id="${CSS.escape(registration.id)}"]`);
+    const bibInput = startListTable.querySelector(`[data-bib-id="${CSS.escape(registration.id)}"]`);
+    return {
+      registrationId: registration.id,
+      startOrder: orderInput?.value || null,
+      bibNumber: bibInput?.value || null,
+    };
+  });
+
+  try {
+    setMessage(startListMessage, "Zapisuję kolejność...", "info");
+    const response = await fetch("/api/start-order", {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ eventId, categoryId, list }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się zapisać kolejności.");
+    await loadStartList();
+    setMessage(startListMessage, `Zapisano kolejność dla zawodników: ${payload.updated}`, "success");
+  } catch (error) {
+    setMessage(startListMessage, error.message || "Nie udało się zapisać kolejności.", "error");
+  }
+}
+
+async function exportStartListCsv() {
+  const eventId = startListEventSelect.value;
+  const categoryId = startListCategorySelect.value;
+  if (!eventId || !categoryId) {
+    setMessage(startListMessage, "Wybierz wydarzenie i kategorię.", "error");
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams({ eventId, categoryId });
+    const response = await fetch(`/api/start-list-export?${params}`, { headers: authHeaders() });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || "Nie udało się pobrać CSV.");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "bmx-freestyle-lista-startowa.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    setMessage(startListMessage, "Eksport listy startowej pobrany.", "success");
+  } catch (error) {
+    setMessage(startListMessage, error.message || "Nie udało się pobrać CSV.", "error");
+  }
 }
 
 function resetEventForm() {
@@ -587,9 +763,12 @@ async function loadConfiguration() {
     if (eventsState[0]) {
       categoryEventSelect.value ||= eventsState[0].id;
       consentEventSelect.value ||= eventsState[0].id;
+      startListEventSelect.value ||= eventsState[0].id;
       categoryForm.elements.eventId.value = categoryEventSelect.value;
       consentForm.elements.eventId.value = consentEventSelect.value;
       await Promise.all([loadCategoriesForSelectedEvent(), loadConsentsForSelectedEvent()]);
+      await loadStartListCategories();
+      await loadStartList();
     }
     if (eventsState[0]) fillEventForm(eventsState[0]);
     resetCategoryForm();
@@ -888,5 +1067,21 @@ consentsList.addEventListener("click", (event) => {
   const selected = consentsState.find((item) => item.id === button.dataset.consentId);
   if (selected) fillConsentForm(selected);
 });
+
+startListEventSelect?.addEventListener("change", async () => {
+  try {
+    await loadStartListCategories();
+    await loadStartList();
+  } catch (error) {
+    setMessage(startListMessage, error.message || "Nie udało się załadować listy.", "error");
+  }
+});
+startListCategorySelect?.addEventListener("change", loadStartList);
+startListRefreshButton?.addEventListener("click", loadStartList);
+orderByCreatedButton?.addEventListener("click", () => assignStartOrder("created"));
+orderByNameButton?.addEventListener("click", () => assignStartOrder("name"));
+orderRandomButton?.addEventListener("click", () => assignStartOrder("random"));
+saveStartOrderButton?.addEventListener("click", saveStartOrder);
+exportStartListButton?.addEventListener("click", exportStartListCsv);
 
 verifySession();

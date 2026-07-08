@@ -16,6 +16,8 @@
       <nav aria-label="Panel organizatora">
         <a href="/admin">Dashboard</a>
         <a href="/admin/zgloszenia">Zgłoszenia</a>
+        <a href="/checkin">Check-in</a>
+        <a href="/admin/listy-startowe">Listy startowe</a>
         <a href="/admin/zawody">Zawody</a>
         <a href="/admin/kategorie">Kategorie</a>
         <a href="/admin/zgody">Zgody</a>
@@ -105,6 +107,46 @@
                 </tr>
               </thead>
               <tbody id="registrationsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="admin-card admin-panel" data-admin-panel="startlists">
+          <div class="section-heading">
+            <p class="eyebrow">Biuro zawodów</p>
+            <h2>Listy startowe</h2>
+            <p>Układanie kolejności dla zaakceptowanych zawodników oraz eksport CSV dla sędziów i biura.</p>
+          </div>
+
+          <div class="admin-filters">
+            <label>Wydarzenie<select id="startListEventSelect"></select></label>
+            <label>Kategoria<select id="startListCategorySelect"></select></label>
+          </div>
+
+          <div class="admin-actions">
+            <button class="secondary-btn" id="startListRefreshButton" type="button">Odśwież</button>
+            <button class="secondary-btn" id="orderByCreatedButton" type="button">Po zgłoszeniu</button>
+            <button class="secondary-btn" id="orderByNameButton" type="button">Alfabetycznie</button>
+            <button class="secondary-btn" id="orderRandomButton" type="button">Losowo</button>
+            <button class="primary-btn" id="saveStartOrderButton" type="button">Zapisz kolejność</button>
+            <button class="secondary-btn" id="exportStartListButton" type="button">Eksport CSV</button>
+          </div>
+
+          <p class="form-message" id="startListMessage" role="status"></p>
+          <div class="registrations-table-wrap">
+            <table class="registrations-table start-list-table">
+              <thead>
+                <tr>
+                  <th>Kolejność</th>
+                  <th>Numer</th>
+                  <th>Zawodnik</th>
+                  <th>Miasto</th>
+                  <th>Klub/team</th>
+                  <th>Check-in</th>
+                  <th>Kontakt</th>
+                </tr>
+              </thead>
+              <tbody id="startListTable"></tbody>
             </table>
           </div>
         </section>

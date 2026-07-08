@@ -2,7 +2,7 @@
 
 MVP systemu zapisów dla BMX Freestyle Polska działający docelowo pod domeną `https://bmxfreestyle.pl`.
 
-Projekt obejmuje publiczny formularz zapisów, panel organizatora, statusy zgłoszeń, eksport CSV oraz podstawowe zarządzanie konfiguracją zawodów: wydarzeniami, kategoriami i zgodami.
+Projekt obejmuje publiczny formularz zapisów, panel organizatora, statusy zgłoszeń, check-in, listy startowe, eksport CSV oraz podstawowe zarządzanie konfiguracją zawodów: wydarzeniami, kategoriami i zgodami.
 
 ## Lokalnie
 
@@ -46,6 +46,8 @@ To konto działa tylko w lokalnym mocku. Produkcja i staging wymagają `ADMIN_LO
 
 - `/admin` — logowanie i dashboard.
 - `/admin/zgloszenia` — lista zgłoszeń, filtry, szczegóły, zmiana statusów i eksport CSV.
+- `/checkin` — operacyjna odprawa zaakceptowanych zawodników.
+- `/admin/listy-startowe` — kolejność startowa, opcjonalne numery i eksport CSV.
 - `/admin/zawody` — dodawanie i edycja wydarzeń.
 - `/admin/kategorie` — dodawanie, edycja i dezaktywacja kategorii wydarzenia.
 - `/admin/zgody` — dodawanie, edycja i dezaktywacja zgód wydarzenia.
@@ -69,6 +71,27 @@ pending_review
 ```
 
 Organizator może później zmienić status na `accepted`, `needs_info`, `rejected` albo `waitlist` i dopisać notatkę statusową.
+
+## Check-in I Listy Startowe
+
+Check-in działa dla zgłoszeń ze statusem `accepted` oraz technicznie także `waitlist`. Widok `/checkin` pokazuje domyślnie zaakceptowanych zawodników w wybranym wydarzeniu i kategorii.
+
+Statusy check-in:
+
+```text
+not_checked_in
+checked_in
+absent
+```
+
+Widok `/admin/listy-startowe` pozwala ustawić `start_order`, opcjonalny `bib_number`, automatycznie nadać kolejność po dacie zgłoszenia, alfabetycznie albo losowo i pobrać CSV listy startowej.
+
+Endpointy:
+
+- `GET /api/start-list?eventId=&categoryId=` — lista zaakceptowanych zawodników.
+- `PATCH /api/checkin` — zmiana statusu check-inu przez admina.
+- `PATCH /api/start-order` — zapis kolejności startowej przez admina.
+- `GET /api/start-list-export?eventId=&categoryId=` — CSV listy startowej.
 
 ## Deployment Na Vercel
 
@@ -130,9 +153,10 @@ Konfiguracja:
 2. Wejdź w SQL Editor.
 3. Uruchom `sql/supabase-bmx-schema.sql`.
 4. Uruchom `sql/supabase-bmx-seed.sql`.
-5. Skopiuj project URL jako `SUPABASE_URL`.
-6. Skopiuj service role key jako `SUPABASE_SERVICE_ROLE_KEY`.
-7. Nie używaj anon key zamiast service role key w backendzie.
+5. Przy aktualizacji istniejącej bazy uruchom dodatkowo `sql/supabase-bmx-checkin-migration.sql`.
+6. Skopiuj project URL jako `SUPABASE_URL`.
+7. Skopiuj service role key jako `SUPABASE_SERVICE_ROLE_KEY`.
+8. Nie używaj anon key zamiast service role key w backendzie.
 
 Schema tworzy:
 
@@ -140,6 +164,8 @@ Schema tworzy:
 - `event_categories`
 - `event_consents`
 - `registrations`
+
+Migracja check-in dodaje do `registrations` pola `checkin_status`, `checked_in_at`, `start_order` i `bib_number` oraz indeksy dla filtrowania po wydarzeniu, kategorii, statusie check-in i kolejności startowej.
 
 Seed dodaje wydarzenie `Puchar Polski BMX Freestyle — Runda 1`, kategorie `PRO`, `AMATOR`, `JUNIOR` oraz wymagane zgody, w tym zgodę na wizerunek.
 
@@ -178,6 +204,8 @@ Minimum przed podpięciem domeny:
 - zgłoszenie PRO, AMATOR i JUNIOR działa zgodnie z walidacją,
 - panel admina wymaga logowania,
 - zmiana statusu i eksport CSV działają,
+- check-in wymaga logowania, pokazuje zaakceptowanych zawodników i zapisuje obecność,
+- listy startowe zapisują kolejność oraz eksportują CSV,
 - maile rejestracyjne i statusowe dochodzą,
 - linki w mailach prowadzą do adresu z `APP_URL`.
 
@@ -187,7 +215,6 @@ Na tym etapie projekt nie obejmuje:
 
 - wyników,
 - rankingów,
-- numerów startowych,
 - panelu sędziego,
 - płatności,
 - SMS,

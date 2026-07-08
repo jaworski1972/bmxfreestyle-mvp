@@ -142,6 +142,59 @@ function ageAtEvent(registration) {
   return ageAtDate(registration.birth_date, event?.startsAt || registration.created_at);
 }
 
+function registrationWithRelations(registration) {
+  return {
+    ...registration,
+    events: mockEvents.find((event) => event.id === registration.event_id),
+    event_categories: mockCategories.find((category) => category.id === registration.category_id),
+  };
+}
+
+function normalizeStartListRow(registration) {
+  const event = mockEvents.find((item) => item.id === registration.event_id) || {};
+  const category = mockCategories.find((item) => item.id === registration.category_id) || {};
+  return {
+    id: registration.id,
+    eventId: registration.event_id,
+    categoryId: registration.category_id,
+    status: registration.status,
+    checkinStatus: registration.checkin_status || "not_checked_in",
+    checkedInAt: registration.checked_in_at,
+    startOrder: registration.start_order,
+    bibNumber: registration.bib_number,
+    firstName: registration.first_name,
+    lastName: registration.last_name,
+    fullName: [registration.first_name, registration.last_name].filter(Boolean).join(" "),
+    birthDate: registration.birth_date,
+    age: ageAtEvent(registration),
+    email: registration.email,
+    phone: registration.phone,
+    city: registration.city,
+    country: registration.country,
+    clubTeam: registration.club_team,
+    guardianRequired: Boolean(registration.guardian_required),
+    guardianFullName: registration.guardian_full_name,
+    guardianPhone: registration.guardian_phone,
+    createdAt: registration.created_at,
+    updatedAt: registration.updated_at,
+    event: { name: event.name, slug: event.slug, city: event.city, venue: event.venue, startsAt: event.startsAt },
+    category: { code: category.code, name: category.name },
+  };
+}
+
+function startListRows(eventId, categoryId) {
+  return registrations
+    .filter((registration) => registration.event_id === eventId)
+    .filter((registration) => registration.category_id === categoryId)
+    .filter((registration) => registration.status === "accepted")
+    .sort((first, second) => {
+      const firstOrder = Number(first.start_order || 999999);
+      const secondOrder = Number(second.start_order || 999999);
+      if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+      return new Date(first.created_at) - new Date(second.created_at);
+    });
+}
+
 function normalizeText(value) {
   return String(value || "").trim();
 }
@@ -466,6 +519,10 @@ async function handleMockApi(request, response) {
       event_id: event.id,
       category_id: category.id,
       status: "pending_review",
+      checkin_status: "not_checked_in",
+      checked_in_at: null,
+      start_order: null,
+      bib_number: null,
       first_name: normalizeText(body.firstName),
       last_name: normalizeText(body.lastName),
       birth_date: body.birthDate,
@@ -505,11 +562,7 @@ async function handleMockApi(request, response) {
     }
     sendJson(response, 200, {
       ok: true,
-      registrations: registrations.map((registration) => ({
-        ...registration,
-        events: mockEvents.find((event) => event.id === registration.event_id),
-        event_categories: mockCategories.find((category) => category.id === registration.category_id),
-      })),
+      registrations: registrations.map(registrationWithRelations),
     });
     return true;
   }
@@ -537,13 +590,152 @@ async function handleMockApi(request, response) {
     registration.updated_at = new Date().toISOString();
     sendJson(response, 200, {
       ok: true,
-      registration: {
-        ...registration,
-        events: mockEvents.find((event) => event.id === registration.event_id),
-        event_categories: mockCategories.find((category) => category.id === registration.category_id),
-      },
+      registration: registrationWithRelations(registration),
       email: { sent: false, skipped: true },
     });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/start-list") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do list startowych." });
+      return true;
+    }
+
+    const eventId = url.searchParams.get("eventId") || "";
+    const categoryId = url.searchParams.get("categoryId") || "";
+    if (!eventId || !categoryId) {
+      sendJson(response, 400, { ok: false, error: "Wybierz wydarzenie i kategorię." });
+      return true;
+    }
+
+    sendJson(response, 200, {
+      ok: true,
+      registrations: startListRows(eventId, categoryId).map(normalizeStartListRow),
+    });
+    return true;
+  }
+
+  if (request.method === "PATCH" && url.pathname === "/api/checkin") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do check-inu." });
+      return true;
+    }
+
+    const body = await readJsonBody(request);
+    const registration = registrations.find((item) => item.id === body.registrationId);
+    const allowed = new Set(["not_checked_in", "checked_in", "absent"]);
+    if (!registration) {
+      sendJson(response, 404, { ok: false, error: "Nie znaleziono zgłoszenia." });
+      return true;
+    }
+    if (!["accepted", "waitlist"].includes(registration.status)) {
+      sendJson(response, 409, { ok: false, error: "Check-in jest dostępny tylko dla zaakceptowanych lub rezerwowych zgłoszeń." });
+      return true;
+    }
+    if (!allowed.has(body.checkin_status || body.checkinStatus)) {
+      sendJson(response, 400, { ok: false, error: "Nieprawidłowy status check-in." });
+      return true;
+    }
+
+    registration.checkin_status = body.checkin_status || body.checkinStatus;
+    registration.checked_in_at = registration.checkin_status === "checked_in" ? new Date().toISOString() : null;
+    registration.updated_at = new Date().toISOString();
+    sendJson(response, 200, { ok: true, registration: normalizeStartListRow(registration) });
+    return true;
+  }
+
+  if (request.method === "PATCH" && url.pathname === "/api/start-order") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do list startowych." });
+      return true;
+    }
+
+    const body = await readJsonBody(request);
+    const eventId = normalizeText(body.eventId);
+    const categoryId = normalizeText(body.categoryId);
+    const items = Array.isArray(body.list) ? body.list : [];
+    const orderValues = items
+      .map((item) => item.startOrder ?? item.start_order)
+      .filter((value) => value !== null && value !== undefined && value !== "")
+      .map(Number);
+
+    if (!eventId || !categoryId || !items.length) {
+      sendJson(response, 400, { ok: false, error: "Wybierz wydarzenie, kategorię i zawodników." });
+      return true;
+    }
+    if (orderValues.some((value) => !Number.isFinite(value) || value < 1) || new Set(orderValues).size !== orderValues.length) {
+      sendJson(response, 400, { ok: false, error: "Kolejność musi być dodatnia i bez powtórek." });
+      return true;
+    }
+
+    for (const item of items) {
+      const registration = registrations.find((entry) => entry.id === (item.registrationId || item.id));
+      if (!registration || registration.event_id !== eventId || registration.category_id !== categoryId || !["accepted", "waitlist"].includes(registration.status)) {
+        sendJson(response, 409, { ok: false, error: "Lista zawiera zawodnika spoza wybranego wydarzenia lub kategorii." });
+        return true;
+      }
+      const rawOrder = item.startOrder ?? item.start_order;
+      registration.start_order = rawOrder === "" || rawOrder === null || rawOrder === undefined ? null : Number(rawOrder);
+      registration.bib_number = nullableText(item.bibNumber ?? item.bib_number);
+      registration.updated_at = new Date().toISOString();
+    }
+
+    sendJson(response, 200, { ok: true, updated: items.length });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/start-list-export") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do eksportu listy startowej." });
+      return true;
+    }
+
+    const eventId = url.searchParams.get("eventId") || "";
+    const categoryId = url.searchParams.get("categoryId") || "";
+    const rows = startListRows(eventId, categoryId).map(normalizeStartListRow).map((registration) => [
+      registration.startOrder,
+      registration.bibNumber,
+      registration.event.name,
+      registration.category.code,
+      registration.status,
+      registration.checkinStatus,
+      registration.checkedInAt,
+      registration.firstName,
+      registration.lastName,
+      registration.birthDate,
+      registration.age,
+      registration.city,
+      registration.country,
+      registration.clubTeam,
+      registration.phone,
+      registration.email,
+      registration.guardianRequired ? "tak" : "nie",
+      registration.guardianFullName,
+      registration.guardianPhone,
+    ]);
+
+    sendCsv(response, "bmx-freestyle-lista-startowa.csv", [[
+      "Kolejność",
+      "Numer startowy",
+      "Wydarzenie",
+      "Kategoria",
+      "Status zgłoszenia",
+      "Check-in",
+      "Check-in czas",
+      "Imię",
+      "Nazwisko",
+      "Data urodzenia",
+      "Wiek",
+      "Miasto",
+      "Kraj",
+      "Klub/team",
+      "Telefon",
+      "Email",
+      "Opiekun wymagany",
+      "Opiekun",
+      "Telefon opiekuna",
+    ], ...rows]);
     return true;
   }
 

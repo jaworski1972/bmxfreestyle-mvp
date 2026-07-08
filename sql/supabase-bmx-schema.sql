@@ -52,6 +52,10 @@ create table if not exists public.registrations (
   category_id uuid not null references public.event_categories(id) on delete restrict,
   status text not null default 'new',
   status_note text null,
+  checkin_status text not null default 'not_checked_in',
+  checked_in_at timestamptz null,
+  start_order integer null check (start_order is null or start_order > 0),
+  bib_number text null,
   confirmation_token uuid not null default gen_random_uuid(),
   confirmed_at timestamptz null,
   first_name text not null,
@@ -77,6 +81,7 @@ create table if not exists public.registrations (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint registrations_status_check check (status in ('new', 'pending_review', 'accepted', 'needs_info', 'rejected', 'waitlist')),
+  constraint registrations_checkin_status_check check (checkin_status in ('not_checked_in', 'checked_in', 'absent')),
   constraint registrations_source_check check (source in ('public', 'admin')),
   constraint registrations_guardian_required_check check (
     guardian_required = false
@@ -114,6 +119,8 @@ create index if not exists event_categories_code_idx on public.event_categories(
 create index if not exists registrations_event_id_idx on public.registrations(event_id);
 create index if not exists registrations_category_id_idx on public.registrations(category_id);
 create index if not exists registrations_status_idx on public.registrations(status);
+create index if not exists registrations_checkin_idx on public.registrations(event_id, category_id, checkin_status);
+create index if not exists registrations_start_order_idx on public.registrations(event_id, category_id, start_order);
 create index if not exists registrations_email_idx on public.registrations(email);
 create index if not exists registrations_created_at_idx on public.registrations(created_at desc);
 create unique index if not exists registrations_confirmation_token_idx on public.registrations(confirmation_token);
