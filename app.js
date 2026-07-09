@@ -172,6 +172,30 @@ function registrationClosedReason(event, now = new Date()) {
   return "";
 }
 
+function eventRoundValue(event) {
+  const explicitRound = Number(event.roundNumber ?? event.round_number);
+  if (Number.isFinite(explicitRound)) return explicitRound;
+  const match = String(event.slug || event.name || "").match(/runda[-\s]*(\d+)/i);
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+}
+
+function eventDateValue(event) {
+  const date = new Date(event.startsAt || event.starts_at || 0);
+  return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+function sortEventsForDisplay(events) {
+  return [...events].sort((first, second) => {
+    const firstRound = eventRoundValue(first);
+    const secondRound = eventRoundValue(second);
+    if (firstRound !== secondRound) return firstRound - secondRound;
+    const firstDate = eventDateValue(first);
+    const secondDate = eventDateValue(second);
+    if (firstDate !== secondDate) return firstDate - secondDate;
+    return String(first.name || "").localeCompare(String(second.name || ""), "pl");
+  });
+}
+
 async function fetchJson(url, fallback) {
   try {
     const response = await fetch(url);
@@ -184,7 +208,7 @@ async function fetchJson(url, fallback) {
 
 async function loadEvents() {
   const payload = await fetchJson("/api/events", { ok: true, events: [fallbackEvent] });
-  return payload.events?.length ? payload.events : [fallbackEvent];
+  return sortEventsForDisplay(payload.events?.length ? payload.events : [fallbackEvent]);
 }
 
 async function loadEvent(slug) {
