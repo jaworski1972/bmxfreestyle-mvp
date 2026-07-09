@@ -225,6 +225,7 @@ function categoryCards() {
 async function renderHome() {
   const events = await loadEvents();
   const nextEvent = events[0] || fallbackEvent;
+  const visibleEvents = events.length ? events : [fallbackEvent];
   app.innerHTML = `
     <section class="hero">
       <img src="/assets/bmx-hero.png" alt="Zawodnik BMX Freestyle w skateparku" />
@@ -249,9 +250,10 @@ async function renderHome() {
     <section class="section">
       <div class="section-heading">
         <p class="eyebrow">Najbliższe zawody</p>
-        <h2>${escapeHtml(nextEvent.name)}</h2>
+        <h2>Kalendarz rund</h2>
+        <p>Wybierz właściwą rundę Pucharu Polski BMX Freestyle i przejdź do szczegółów albo formularza zapisów.</p>
       </div>
-      ${eventCard(nextEvent)}
+      <div class="event-list">${visibleEvents.map(eventCard).join("")}</div>
     </section>
     <section class="section">
       <div class="section-heading">
