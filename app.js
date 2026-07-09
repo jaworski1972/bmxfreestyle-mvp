@@ -211,42 +211,73 @@ async function loadConsents(eventId) {
   return Array.isArray(payload.consents) ? payload.consents : fallbackConsents;
 }
 
-function categoryCards() {
-  return fallbackCategories.map((category) => `
+function categoryCards(categories = fallbackCategories, eventSlug = null) {
+  return categories.map((category) => `
     <article class="category-card">
-      <span class="card-kicker">${category.requiresLicense ? "Licencja" : "Open"}</span>
+      <span class="card-kicker">${category.requiresLicense || category.requires_license ? "Licencja" : "Open"}</span>
       <strong>${category.code}</strong>
       <p>${category.description}</p>
-      ${category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Bez licencji</span>'}
+      ${category.requiresLicense || category.requires_license ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Bez licencji</span>'}
+      ${eventSlug ? `<a class="category-card-cta" href="/zapisy/${eventSlug}" data-link>Zapisz się jako ${escapeHtml(category.code)}</a>` : ""}
     </article>
   `).join("");
+}
+
+function capacityNote(event) {
+  const total = event.capacityTotal ?? event.capacity_total;
+  return Number.isFinite(Number(total)) && Number(total) > 0
+    ? `Limit: ${Number(total)} zawodników`
+    : "";
+}
+
+function registrationDeadlineNote(event) {
+  const endsAt = event.registrationEndsAt || event.registration_ends_at;
+  if (!endsAt) return "";
+  const end = new Date(endsAt);
+  if (Number.isNaN(end.getTime())) return "";
+  const formatter = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long" });
+  const now = new Date();
+  const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+  if (days < 0) return "";
+  return `Zapisy do ${formatter.format(end)}${days <= 14 ? ` · zostało ${days} dni` : ""}`;
 }
 
 async function renderHome() {
   const events = await loadEvents();
   const nextEvent = events[0] || fallbackEvent;
   const visibleEvents = events.length ? events : [fallbackEvent];
+  const categories = await loadCategories(nextEvent.id);
+  const deadlineNote = registrationDeadlineNote(nextEvent);
+  const capacityNoteText = capacityNote(nextEvent);
+
   app.innerHTML = `
     <section class="hero">
       <img src="/assets/bmx-hero.png" alt="Zawodnik BMX Freestyle w skateparku" />
       <div class="hero-content">
-        <p class="eyebrow">Puchar Polski BMX Freestyle</p>
-        <h1>Zapisy na Puchar Polski BMX Freestyle</h1>
-        <p>Oficjalny system zgłoszeń BMX Freestyle Polska. Wybierz zawody, kategorię i wyślij zgłoszenie do weryfikacji organizatora.</p>
+        <p class="eyebrow">${nextEvent.status === "registration_open" ? "Zapisy otwarte" : "Puchar Polski BMX Freestyle"}</p>
+        <h1>Zapisz się na<br>Puchar Polski<br>BMX&nbsp;Freestyle</h1>
+        <p>Najlepsi zawodnicy BMX Freestyle w kraju i Kadra Polska na jednym starcie. Wybierz kategorię i wyślij zgłoszenie w kilka minut.</p>
         <div class="hero-actions">
-          <a class="primary-btn" href="/zapisy/${nextEvent.slug}" data-link>Rozpocznij rejestrację</a>
+          <a class="primary-btn" href="/zapisy/${nextEvent.slug}" data-link>Zapisz się teraz</a>
           <a class="secondary-btn" href="/zawody" data-link>Zobacz kalendarz</a>
         </div>
+        ${deadlineNote || capacityNoteText ? `
+          <p class="hero-fact-line">
+            ${[deadlineNote, capacityNoteText].filter(Boolean).join(" · ")}
+          </p>
+        ` : ""}
       </div>
     </section>
+
     <section class="section">
       <div class="section-heading">
-        <p class="eyebrow">Kategorie MVP</p>
+        <p class="eyebrow">Kategorie startowe</p>
         <h2>PRO, AMATOR, JUNIOR</h2>
-        <p>Trzy czytelne ścieżki startu: licencyjne PRO, otwarty AMATOR i JUNIOR dla młodszych zawodników.</p>
+        <p>Trzy czytelne ścieżki startu: licencyjne PRO, otwarty AMATOR i JUNIOR dla młodszych zawodników. Wybierz swoją i zapisz się od razu.</p>
       </div>
-      <div class="category-grid">${categoryCards()}</div>
+      <div class="category-grid">${categoryCards(categories, nextEvent.slug)}</div>
     </section>
+
     <section class="section">
       <div class="section-heading">
         <p class="eyebrow">Najbliższe zawody</p>
@@ -255,10 +286,11 @@ async function renderHome() {
       </div>
       <div class="event-list">${visibleEvents.map(eventCard).join("")}</div>
     </section>
+
     <section class="section">
       <div class="section-heading">
-        <p class="eyebrow">Flow zgłoszenia</p>
-        <h2>Jak działa zgłoszenie</h2>
+        <p class="eyebrow">Jak to działa</p>
+        <h2>Zgłoszenie zajmuje kilka minut</h2>
       </div>
       <div class="steps">
         <article class="step-card"><span>1</span><h3>Wybierz zawody</h3><p>Publiczna lista aktywnych wydarzeń pod główną domeną.</p></article>
@@ -267,11 +299,23 @@ async function renderHome() {
         <article class="step-card"><span>4</span><h3>Czekaj na status</h3><p>Organizator potwierdzi przyjęcie lub poprosi o uzupełnienie danych.</p></article>
       </div>
     </section>
+
+    <section class="section">
+      <div class="cta-band">
+        <div>
+          <h2>Gotowy na start?</h2>
+          <p>Wybierz kategorię i wyślij zgłoszenie do ${escapeHtml(nextEvent.name)}.</p>
+        </div>
+        <a class="primary-btn" href="/zapisy/${nextEvent.slug}" data-link>Zapisz się teraz</a>
+      </div>
+    </section>
+
     ${faqSection()}
   `;
 }
 
 function eventCard(event) {
+  const facts = [capacityNote(event), registrationDeadlineNote(event)].filter(Boolean);
   return `
     <article class="event-card">
       <div>
@@ -282,6 +326,7 @@ function eventCard(event) {
           <span class="status-pill ${statusClass(event.status)}">${statusLabel(event.status)}</span>
           ${categoryChips()}
         </div>
+        ${facts.length ? `<p class="event-fact-line">${facts.join(" · ")}</p>` : ""}
       </div>
       <div class="hero-actions">
         <a class="secondary-btn" href="/zawody/${event.slug}" data-link>Szczegóły</a>
@@ -314,6 +359,9 @@ async function renderEventDetails(slug) {
     return;
   }
 
+  const categories = await loadCategories(event.id);
+  const facts = [capacityNote(event), registrationDeadlineNote(event)].filter(Boolean);
+
   app.innerHTML = `
     <section class="page-hero event-hero">
       <div class="section-heading">
@@ -322,8 +370,9 @@ async function renderEventDetails(slug) {
         <p>${formatDateRange(event)} · ${escapeHtml(event.city)} · ${escapeHtml(event.venue)}</p>
         <div class="event-badges">
           <span class="status-pill ${statusClass(event.status)}">${statusLabel(event.status)}</span>
-          ${categoryChips()}
+          ${categoryChips(categories)}
         </div>
+        ${facts.length ? `<p class="hero-fact-line">${facts.join(" · ")}</p>` : ""}
         <div class="hero-actions">
           <a class="primary-btn" href="/zapisy/${event.slug}" data-link>Przejdź do zapisu</a>
           <a class="secondary-btn" href="/regulamin" data-link>Regulamin</a>
@@ -332,7 +381,7 @@ async function renderEventDetails(slug) {
     </section>
     <section class="section section-tight">
       <div class="notice">${escapeHtml(event.organizerMessage || "Komunikat organizatora pojawi się tutaj.")}</div>
-      <div class="category-grid event-category-grid">${categoryCards()}</div>
+      <div class="category-grid event-category-grid">${categoryCards(categories, event.slug)}</div>
     </section>
   `;
 }
