@@ -124,7 +124,7 @@ const partnerGroups = [
       {
         name: "Fundacja Sportów Miejskich",
         role: "organizer",
-        logo: "/assets/partners/fundacja-sportow-miejskich.svg",
+        logo: "/assets/partners/fundacja-sportow-miejskich.png",
         alt: "Fundacja Sportów Miejskich",
         url: "",
       },

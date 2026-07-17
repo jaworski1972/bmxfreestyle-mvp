@@ -2411,11 +2411,9 @@ body.checkin-body {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
-    rgba(5, 5, 5, 0.72);
+  background: #ffffff;
   box-shadow: 0 22px 62px rgba(0, 0, 0, 0.42);
-  color: var(--white);
+  color: var(--ink);
   text-decoration: none;
   transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
 }
@@ -2431,9 +2429,7 @@ body.checkin-body {
 
 .partner-logo-card:hover {
   border-color: rgba(180, 255, 0, 0.36);
-  background:
-    linear-gradient(180deg, rgba(180, 255, 0, 0.08), rgba(255, 255, 255, 0.025)),
-    rgba(5, 5, 5, 0.76);
+  background: #ffffff;
   transform: translateY(-2px);
 }
 
@@ -2458,7 +2454,6 @@ body.checkin-body {
   max-width: min(170px, 100%);
   max-height: 70px;
   object-fit: contain;
-  filter: grayscale(1) brightness(1.35);
 }
 
 .partner-logo-organizer img {
@@ -2479,7 +2474,7 @@ body.checkin-body {
   min-height: 64px;
   place-items: center;
   padding: 10px;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(9, 11, 13, 0.72);
   font-size: clamp(0.9rem, 1.2vw, 1.02rem);
   font-weight: 950;
   letter-spacing: 0;
