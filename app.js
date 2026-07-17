@@ -142,7 +142,7 @@ const partnerGroups = [
     ],
   },
   {
-    title: "Sponsorzy i partnerzy",
+    title: "Partnerzy",
     type: "sponsors",
     items: [
       {
@@ -161,7 +161,7 @@ const partnerGroups = [
         logo: "/assets/partners/monster-energy.png",
         alt: "Monster Energy",
         url: "",
-        logoScale: 1.6,
+        logoScale: 1.44,
       },
       {
         name: "Fox Racing",
@@ -577,7 +577,7 @@ function partnersSection() {
     <section class="section partners-section" aria-labelledby="partners-heading">
       <div class="section-heading">
         <p class="eyebrow">BMX Series</p>
-        <h2 id="partners-heading">Partnerzy i sponsorzy</h2>
+        <h2 id="partners-heading">Partnerzy</h2>
         <p>Marki i instytucje wspierające rozwój zawodów BMX Freestyle w Polsce.</p>
       </div>
       <div class="partner-groups">
