@@ -578,6 +578,70 @@ h3 {
   gap: 18px;
 }
 
+.confirmation-page {
+  display: grid;
+  gap: 20px;
+}
+
+.confirmation-page h1 {
+  font-size: clamp(2.6rem, 8vw, 6rem);
+}
+
+.confirmation-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.46fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.confirmation-details,
+.qr-panel {
+  padding: clamp(20px, 4vw, 32px);
+  background: var(--white);
+  border: 1px solid rgba(15, 17, 21, 0.09);
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(8, 11, 14, 0.06);
+}
+
+.confirmation-details {
+  display: grid;
+  gap: 18px;
+}
+
+.confirmation-details h2 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+.qr-panel {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+}
+
+.qr-code {
+  display: grid;
+  place-items: center;
+  width: min(100%, 330px);
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.qr-code svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.qr-panel p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .signup-placeholder label {
   display: grid;
   gap: 8px;
@@ -1146,6 +1210,7 @@ h3 {
   .category-grid,
   .action-grid,
   .category-choice-grid,
+  .confirmation-card,
   .steps,
   .signup-placeholder,
   .form-section,

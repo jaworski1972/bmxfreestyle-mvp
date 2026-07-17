@@ -894,6 +894,9 @@ function setupRegistrationForm({ event, categories, consents }) {
       }
 
       const state = formState();
+      const confirmationLink = payload.registration?.confirmation_token
+        ? `/potwierdz?token=${encodeURIComponent(payload.registration.confirmation_token)}`
+        : "";
       app.innerHTML = `
         <section class="placeholder-page success-page">
           <div class="success-mark" aria-hidden="true">✓</div>
@@ -909,6 +912,7 @@ function setupRegistrationForm({ event, categories, consents }) {
           </div>
           <p>Kategoria: <strong>${escapeHtml(state.category.code)}</strong></p>
           <div class="hero-actions">
+            ${confirmationLink ? `<a class="primary-btn" href="${escapeHtml(confirmationLink)}" data-link>Pokaż potwierdzenie i QR</a>` : ""}
             <a class="primary-btn" href="/zawody/${event.slug}" data-link>Wróć do wydarzenia</a>
             <a class="secondary-btn" href="/" data-link>Strona główna</a>
           </div>
@@ -926,12 +930,71 @@ function setupRegistrationForm({ event, categories, consents }) {
   updateDynamicState();
 }
 
-function renderConfirmationPlaceholder() {
+async function renderConfirmationPlaceholder() {
+  const token = new URLSearchParams(window.location.search).get("token");
+  if (!token) {
+    app.innerHTML = `
+      <section class="placeholder-page confirmation-page">
+        <p class="eyebrow">Potwierdzenie</p>
+        <h1>Potwierdzenie zgłoszenia</h1>
+        <p>Brakuje tokena potwierdzenia. Otwórz link z wiadomości e-mail lub SMS.</p>
+        <a class="primary-btn" href="/" data-link>Wróć do strony głównej</a>
+      </section>
+    `;
+    return;
+  }
+
   app.innerHTML = `
-    <section class="placeholder-page">
+    <section class="placeholder-page confirmation-page">
       <p class="eyebrow">Potwierdzenie</p>
+      <h1>Ładuję potwierdzenie</h1>
+      <p>Pobieram dane zgłoszenia i kod QR.</p>
+    </section>
+  `;
+
+  const payload = await fetchJson(`/api/confirmation?token=${encodeURIComponent(token)}`, { ok: false, error: "Nie udało się pobrać potwierdzenia." });
+  if (!payload.ok || !payload.confirmation) {
+    app.innerHTML = `
+      <section class="placeholder-page confirmation-page">
+        <p class="eyebrow">Potwierdzenie</p>
+        <h1>Nie znaleziono potwierdzenia</h1>
+        <p>${escapeHtml(payload.error || "Link jest nieprawidłowy albo zgłoszenie nie ma jeszcze tokena potwierdzenia.")}</p>
+        <a class="primary-btn" href="/" data-link>Wróć do strony głównej</a>
+      </section>
+    `;
+    return;
+  }
+
+  const confirmation = payload.confirmation;
+  app.innerHTML = `
+    <section class="placeholder-page confirmation-page">
+      <p class="eyebrow">BMX Freestyle Polska</p>
       <h1>Potwierdzenie zgłoszenia</h1>
-      <p>Po kliknięciu linku z wiadomości e-mail pokażemy tutaj status potwierdzenia zgłoszenia.</p>
+      <span class="status-chip status-${escapeHtml(confirmation.status.code)}">${escapeHtml(confirmation.status.label)}</span>
+      <div class="confirmation-card">
+        <div class="confirmation-details">
+          <div>
+            <p class="panel-kicker">Zawodnik</p>
+            <h2>${escapeHtml(confirmation.athlete.fullName)}</h2>
+          </div>
+          <div class="detail-list">
+            <p><strong>Wydarzenie</strong><span>${escapeHtml(confirmation.event.name)}</span></p>
+            <p><strong>Data</strong><span>${escapeHtml(confirmation.event.date)}</span></p>
+            <p><strong>Miejsce</strong><span>${escapeHtml([confirmation.event.city, confirmation.event.venue].filter(Boolean).join(" / "))}</span></p>
+            <p><strong>Kategoria</strong><span>${escapeHtml(confirmation.category.code)}</span></p>
+          </div>
+          <div class="notice">${escapeHtml(confirmation.status.message)}</div>
+        </div>
+        <div class="qr-panel">
+          <div class="qr-code" aria-label="Kod QR do okazania przy check-inie">${confirmation.qrSvg}</div>
+          <strong>Kod QR do okazania przy check-inie</strong>
+          <p>Pokaż ten kod w biurze zawodów. Kod prowadzi do tej strony potwierdzenia.</p>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <a class="primary-btn" href="/" data-link>Wróć do strony głównej</a>
+        <a class="secondary-btn" href="${escapeHtml(confirmation.confirmationUrl)}">Otwórz link potwierdzenia</a>
+      </div>
     </section>
   `;
 }

@@ -109,6 +109,23 @@ create table if not exists public.event_consents (
   unique (event_id, code)
 );
 
+create table if not exists public.sms_logs (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid null references public.events(id) on delete set null,
+  registration_id uuid null references public.registrations(id) on delete set null,
+  recipient_phone text null,
+  recipient_type text null,
+  message text not null,
+  send_status text not null,
+  provider text null,
+  provider_message_id text null,
+  error_message text null,
+  sent_at timestamptz null,
+  created_at timestamptz not null default now(),
+  constraint sms_logs_send_status_check check (send_status in ('sent', 'failed', 'dry_run', 'skipped')),
+  constraint sms_logs_recipient_type_check check (recipient_type is null or recipient_type in ('athlete', 'guardian'))
+);
+
 create index if not exists events_slug_idx on public.events(slug);
 alter table public.event_categories drop constraint if exists event_categories_code_check;
 alter table public.event_categories add constraint event_categories_code_check check (length(trim(code)) > 0);
@@ -126,3 +143,6 @@ create index if not exists registrations_created_at_idx on public.registrations(
 create unique index if not exists registrations_confirmation_token_idx on public.registrations(confirmation_token);
 create index if not exists event_consents_event_id_idx on public.event_consents(event_id);
 create index if not exists event_consents_code_idx on public.event_consents(code);
+create index if not exists sms_logs_registration_id_idx on public.sms_logs(registration_id);
+create index if not exists sms_logs_event_id_idx on public.sms_logs(event_id);
+create index if not exists sms_logs_created_at_idx on public.sms_logs(created_at desc);

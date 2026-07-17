@@ -876,6 +876,9 @@ function openDetails(registration) {
   const requiresLicense = Boolean(registration.event_categories?.requires_license || categoryCode(registration) === "PRO");
   const juniorMax = registration.event_categories?.age_max;
   const juniorOk = categoryCode(registration) !== "JUNIOR" || !Number.isFinite(Number(juniorMax)) || Number(age) <= Number(juniorMax);
+  const confirmationLink = registration.confirmation_token
+    ? `${window.location.origin}/potwierdz?token=${encodeURIComponent(registration.confirmation_token)}`
+    : "";
 
   registrationDetails.innerHTML = `
     <div class="modal-header">
@@ -931,6 +934,15 @@ function openDetails(registration) {
       <section>
         <h3>Zgody</h3>
         ${consentRows(registration)}
+      </section>
+      <section>
+        <h3>Link potwierdzenia</h3>
+        <div class="detail-list">
+          ${confirmationLink ? `
+            <p><strong>URL</strong><span><a href="${escapeHtml(confirmationLink)}" target="_blank" rel="noopener">${escapeHtml(confirmationLink)}</a></span></p>
+            <p><strong>Akcja</strong><span><a class="secondary-btn" href="${escapeHtml(confirmationLink)}" target="_blank" rel="noopener">Otwórz potwierdzenie</a></span></p>
+          ` : '<p><strong>URL</strong><span>Brak tokena potwierdzenia dla tego zgłoszenia.</span></p>'}
+        </div>
       </section>
     </div>
     <section class="status-editor">

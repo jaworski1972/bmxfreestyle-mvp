@@ -1,7 +1,8 @@
 const { randomUUID } = require("crypto");
 const { cleanText, getSupabase, json, readBody } = require("../lib/supabase");
 const { normalizePolishPhone } = require("../lib/phone-normalization");
-const { sendRegistrationReceivedEmail } = require("../lib/mail");
+const { confirmationUrl, sendRegistrationReceivedEmail } = require("../lib/mail");
+const { enabled, sendSmsNotification } = require("../lib/sms");
 
 function requiredString(body, key) {
   return cleanText(body[key], 220);
@@ -343,11 +344,24 @@ module.exports = async function handler(request, response) {
       email = { sent: false, skipped: true, error: emailError.message };
     }
 
+    const storedRegistration = { ...registration, id: data.id, confirmation_token: data.confirmation_token };
+    const confirmUrl = confirmationUrl(data.confirmation_token);
+    const smsMessage = `BMX Freestyle Polska: zgłoszenie przyjęte do systemu. Status: oczekuje na weryfikację. Potwierdzenie i QR: ${confirmUrl}`;
+    const sms = await sendSmsNotification({
+      supabase,
+      event,
+      registration: storedRegistration,
+      message: smsMessage,
+      reason: "registration_disabled",
+      force: enabled("SEND_SMS_ON_REGISTRATION"),
+    });
+
     json(response, 201, {
       ok: true,
       registration: data,
       status: data.status,
       email,
+      sms,
       message: "Zgłoszenie zostało przyjęte do systemu i oczekuje na weryfikację organizatora.",
     });
   } catch (error) {

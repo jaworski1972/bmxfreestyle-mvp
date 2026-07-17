@@ -39,6 +39,7 @@ To konto działa tylko w lokalnym mocku. Produkcja i staging wymagają `ADMIN_LO
 - `/zawody` — lista wydarzeń.
 - `/zawody/:slug` — szczegóły wydarzenia.
 - `/zapisy/puchar-polski-bmx-freestyle-runda-1` — formularz zapisów dla wydarzenia testowego.
+- `/potwierdz?token=...` — publiczne potwierdzenie zgłoszenia z kodem QR do okazania przy check-inie.
 - `/regulamin` — miejsce na regulamin i dokumenty.
 - `/faq` — podstawowe FAQ.
 
@@ -139,6 +140,17 @@ Wymagane na stagingu i produkcji:
 - `ADMIN_PASSWORD` — mocne produkcyjne hasło organizatora.
 - `ADMIN_AUTH_SECRET` — długi losowy sekret do podpisywania sesji admina.
 
+Opcjonalne SMS:
+
+- `SMS_PROVIDER` — obsługiwany provider, obecnie `smsapi`.
+- `SMS_API_TOKEN` — token providera SMS.
+- `SMS_FROM` — opcjonalna nazwa nadawcy.
+- `SMS_DRY_RUN` — `true` symuluje wysyłkę i loguje próbę bez kontaktu z providerem.
+- `SEND_SMS_ON_REGISTRATION` — `true` włącza SMS po utworzeniu zgłoszenia.
+- `SEND_SMS_ON_ACCEPTED` — `true` włącza SMS po zmianie statusu na `accepted`.
+
+Domyślnie SMS-y są wyłączone. Brak konfiguracji SMS nie blokuje zapisów ani zmiany statusu.
+
 Kod używa nazw `ADMIN_LOGIN`, `ADMIN_PASSWORD` i `ADMIN_AUTH_SECRET`. Nie używa `ADMIN_USERNAME` ani `ADMIN_SESSION_SECRET`.
 
 Nie commituj prawdziwego `.env`. Service role key nie może trafić do kodu publicznego frontendu.
@@ -154,9 +166,10 @@ Konfiguracja:
 3. Uruchom `sql/supabase-bmx-schema.sql`.
 4. Uruchom `sql/supabase-bmx-seed.sql`.
 5. Przy aktualizacji istniejącej bazy uruchom dodatkowo `sql/supabase-bmx-checkin-migration.sql`.
-6. Skopiuj project URL jako `SUPABASE_URL`.
-7. Skopiuj service role key jako `SUPABASE_SERVICE_ROLE_KEY`.
-8. Nie używaj anon key zamiast service role key w backendzie.
+6. Uruchom `sql/supabase-bmx-confirmation-token-migration.sql`, aby uzupełnić tokeny potwierdzeń i dodać tabelę `sms_logs`.
+7. Skopiuj project URL jako `SUPABASE_URL`.
+8. Skopiuj service role key jako `SUPABASE_SERVICE_ROLE_KEY`.
+9. Nie używaj anon key zamiast service role key w backendzie.
 
 Schema tworzy:
 
@@ -164,8 +177,11 @@ Schema tworzy:
 - `event_categories`
 - `event_consents`
 - `registrations`
+- `sms_logs`
 
 Migracja check-in dodaje do `registrations` pola `checkin_status`, `checked_in_at`, `start_order` i `bib_number` oraz indeksy dla filtrowania po wydarzeniu, kategorii, statusie check-in i kolejności startowej.
+
+Migracja potwierdzeń uzupełnia `confirmation_token` dla starych zgłoszeń, zakłada unikalny indeks tokena i tworzy `sms_logs` dla prób wysyłki SMS.
 
 Seed dodaje wydarzenie `Puchar Polski BMX Freestyle — Runda 1`, kategorie `PRO`, `AMATOR`, `JUNIOR` oraz wymagane zgody, w tym zgodę na wizerunek.
 
@@ -217,5 +233,4 @@ Na tym etapie projekt nie obejmuje:
 - rankingów,
 - panelu sędziego,
 - płatności,
-- SMS,
 - osobnej subdomeny do zapisów.

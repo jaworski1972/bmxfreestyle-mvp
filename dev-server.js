@@ -1,6 +1,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { randomUUID } = require("crypto");
 
 const port = Number(process.env.PORT || 5178);
 const root = __dirname;
@@ -148,6 +149,19 @@ function registrationWithRelations(registration) {
     events: mockEvents.find((event) => event.id === registration.event_id),
     event_categories: mockCategories.find((category) => category.id === registration.category_id),
   };
+}
+
+function confirmationUrlForToken(token) {
+  return `${process.env.APP_URL || `http://127.0.0.1:${port}`}/potwierdz?token=${encodeURIComponent(token)}`;
+}
+
+function mockQrSvg(value) {
+  const seed = [...String(value)].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  const cells = Array.from({ length: 21 * 21 }, (_, index) => ((index * 17 + seed) % 7) < 3);
+  const rects = cells.map((dark, index) => dark
+    ? `<rect x="${index % 21}" y="${Math.floor(index / 21)}" width="1" height="1"/>`
+    : "").join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" role="img" aria-label="Kod QR"><rect width="25" height="25" fill="#fff"/><g transform="translate(2 2)" fill="#0f1115">${rects}</g></svg>`;
 }
 
 function normalizeStartListRow(registration) {
@@ -523,6 +537,7 @@ async function handleMockApi(request, response) {
       checked_in_at: null,
       start_order: null,
       bib_number: null,
+      confirmation_token: randomUUID(),
       first_name: normalizeText(body.firstName),
       last_name: normalizeText(body.lastName),
       birth_date: body.birthDate,
@@ -552,6 +567,47 @@ async function handleMockApi(request, response) {
     };
     registrations.push(registration);
     sendJson(response, 201, { ok: true, registration, status: registration.status, email: { sent: false, skipped: true }, message: "Zgłoszenie zostało przyjęte do systemu i oczekuje na weryfikację organizatora." });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/confirmation") {
+    const token = url.searchParams.get("token") || "";
+    const registration = registrations.find((item) => item.confirmation_token === token);
+    if (!token || !registration) {
+      sendJson(response, token ? 404 : 400, { ok: false, error: token ? "Nie znaleziono potwierdzenia zgłoszenia." : "Brakuje tokena potwierdzenia." });
+      return true;
+    }
+    const event = mockEvents.find((item) => item.id === registration.event_id) || {};
+    const category = mockCategories.find((item) => item.id === registration.category_id) || {};
+    const confirmUrl = confirmationUrlForToken(token);
+    sendJson(response, 200, {
+      ok: true,
+      confirmation: {
+        id: registration.id,
+        confirmationUrl: confirmUrl,
+        qrSvg: mockQrSvg(confirmUrl),
+        athlete: { fullName: [registration.first_name, registration.last_name].filter(Boolean).join(" ") },
+        event: {
+          name: event.name || "",
+          date: event.startsAt ? new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long", year: "numeric" }).format(new Date(event.startsAt)) : "Termin wkrótce",
+          city: event.city || "",
+          venue: event.venue || "",
+          slug: event.slug || "",
+        },
+        category: { code: category.code || "", name: category.name || "" },
+        status: {
+          code: registration.status,
+          label: {
+            pending_review: "oczekuje na weryfikację organizatora",
+            accepted: "zaakceptowane",
+            needs_info: "wymaga uzupełnienia",
+            rejected: "odrzucone",
+            waitlist: "lista rezerwowa",
+          }[registration.status] || registration.status,
+          message: "Pokaż ten kod przy check-inie albo zachowaj link do potwierdzenia.",
+        },
+      },
+    });
     return true;
   }
 
