@@ -118,19 +118,6 @@ const fallbackConsents = [
 
 const partnerGroups = [
   {
-    title: "Organizator",
-    type: "organizer",
-    items: [
-      {
-        name: "Fundacja Sportów Miejskich",
-        role: "organizer",
-        logo: "/assets/partners/fundacja-sportow-miejskich.png",
-        alt: "Fundacja Sportów Miejskich",
-        url: "",
-      },
-    ],
-  },
-  {
     title: "Miasta gospodarze",
     type: "host_cities",
     items: [
