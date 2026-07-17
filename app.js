@@ -137,14 +137,14 @@ const partnerGroups = [
       {
         name: "Gorzów Wielkopolski",
         role: "host_city",
-        logo: "/assets/partners/gorzow-wielkopolski.svg",
+        logo: "/assets/partners/gorzow-wielkopolski.png",
         alt: "Gorzów Wielkopolski",
         url: "",
       },
       {
         name: "Miasto i Gmina Bogatynia",
         role: "host_city",
-        logo: "/assets/partners/bogatynia.svg",
+        logo: "/assets/partners/bogatynia.png",
         alt: "Miasto i Gmina Bogatynia",
         url: "",
       },
