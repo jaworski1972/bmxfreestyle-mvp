@@ -256,6 +256,7 @@ async function renderHome() {
         <img src="/assets/hero-puchar-polski-desktop.png" alt="Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce.">
       </picture>
     </section>
+    <div class="section-glow-separator" aria-hidden="true"></div>
     <section class="section action-section">
       <div class="section-heading">
         <p class="eyebrow">Start</p>
@@ -283,6 +284,7 @@ async function renderHome() {
         </article>
       </div>
     </section>
+    <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
     <section class="section">
       <div class="section-heading">
         <p class="eyebrow">Kategorie MVP</p>
