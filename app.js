@@ -461,20 +461,13 @@ async function renderSignupPlaceholder(slug) {
           <div>
             <p class="eyebrow">Krok 3</p>
             <h2>Dane licencji</h2>
-            <p>Kategoria PRO wymaga licencji PZKol, UCI albo innej federacji krajowej.</p>
+            <p>Wpisz numer licencji zawodniczej wymaganej dla kategorii PRO.</p>
           </div>
           <div class="field-grid">
-            <label>Typ licencji
-              <select name="licenseType">
-                <option value="">Wybierz</option>
-                <option value="PZKol">PZKol</option>
-                <option value="UCI">UCI</option>
-                <option value="inna federacja">Inna federacja</option>
-              </select>
+            <label class="full">Numer licencji UCI / PZKol
+              <span>Wpisz numer licencji zawodniczej wymaganej dla kategorii PRO.</span>
+              <input name="licenseNumber" />
             </label>
-            <label>Numer licencji<input name="licenseNumber" /></label>
-            <label>UCI ID <span>opcjonalnie</span><input name="uciId" /></label>
-            <label>Kraj federacji<input name="federationCountry" value="Polska" /></label>
           </div>
         </section>
 
@@ -617,9 +610,7 @@ function setupRegistrationForm({ event, categories, consents }) {
 
     licenseSection.hidden = !needsLicense;
     setRequired([
-      form.elements.licenseType,
       form.elements.licenseNumber,
-      form.elements.federationCountry,
     ], needsLicense);
 
     guardianSection.hidden = !state.minor;
@@ -671,8 +662,8 @@ function setupRegistrationForm({ event, categories, consents }) {
       return `Zawodnik nie spełnia warunku wieku dla kategorii JUNIOR. Maksymalny wiek: ${state.juniorMax} lat.`;
     }
     if (isLicenseRequired(state.category)) {
-      if (!form.elements.licenseType.value || !form.elements.licenseNumber.value || !form.elements.federationCountry.value) {
-        return "Kategoria PRO wymaga typu licencji, numeru licencji i kraju federacji.";
+      if (!form.elements.licenseNumber.value.trim()) {
+        return "Podaj numer licencji UCI / PZKol.";
       }
     }
     if (state.minor) {
@@ -717,10 +708,7 @@ function setupRegistrationForm({ event, categories, consents }) {
       country: form.elements.country.value.trim(),
       gender: form.elements.gender.value,
       clubTeam: form.elements.clubTeam.value.trim(),
-      licenseType: form.elements.licenseType.value,
       licenseNumber: form.elements.licenseNumber.value.trim(),
-      uciId: form.elements.uciId.value.trim(),
-      federationCountry: form.elements.federationCountry.value.trim(),
       guardianFullName: form.elements.guardianFullName.value.trim(),
       guardianEmail: form.elements.guardianEmail.value.trim(),
       guardianPhone: form.elements.guardianPhone.value.trim(),
@@ -817,7 +805,7 @@ function faqSection() {
         <h2>Najczęstsze pytania</h2>
       </div>
       <div class="faq-list">
-        <article class="faq-item"><h3>Czy PRO wymaga licencji?</h3><p>Tak. Model danych ma pola typu licencji, numeru licencji, UCI ID i kraju federacji.</p></article>
+        <article class="faq-item"><h3>Czy PRO wymaga licencji?</h3><p>Tak. W formularzu PRO podajesz jeden numer licencji UCI / PZKol.</p></article>
         <article class="faq-item"><h3>Czy są osobne kategorie kobiet?</h3><p>Nie w MVP. Struktura kategorii ma jednak gender_scope, więc można je dodać później.</p></article>
         <article class="faq-item"><h3>Czy wysłanie formularza oznacza akceptację?</h3><p>Nie. Zgłoszenie trafia do weryfikacji organizatora, a status przyjęcia zostanie potwierdzony osobno.</p></article>
       </div>

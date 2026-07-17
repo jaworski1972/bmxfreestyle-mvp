@@ -481,8 +481,8 @@ async function handleMockApi(request, response) {
       return true;
     }
 
-    if (category.requiresLicense && (!body.licenseType || !body.licenseNumber || !body.federationCountry)) {
-      sendJson(response, 400, { ok: false, code: "license_required", error: "Kategoria PRO wymaga typu licencji, numeru licencji i kraju federacji." });
+    if (category.requiresLicense && !normalizeText(body.licenseNumber)) {
+      sendJson(response, 400, { ok: false, code: "license_required", error: "Podaj numer licencji UCI / PZKol." });
       return true;
     }
 
@@ -772,10 +772,7 @@ async function handleMockApi(request, response) {
           registration.email,
           registration.phone,
           registration.gender,
-          registration.license_type,
           registration.license_number,
-          registration.uci_id,
-          registration.federation_country,
           registration.guardian_required ? "tak" : "nie",
           registration.guardian_full_name,
           registration.guardian_email,
@@ -801,10 +798,7 @@ async function handleMockApi(request, response) {
       "E-mail zawodnika",
       "Telefon zawodnika",
       "Płeć",
-      "Typ licencji",
-      "Numer licencji",
-      "UCI ID",
-      "Kraj federacji",
+      "Numer licencji UCI/PZKol",
       "Czy wymagany opiekun",
       "Imię i nazwisko opiekuna",
       "E-mail opiekuna",

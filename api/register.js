@@ -240,19 +240,12 @@ module.exports = async function handler(request, response) {
       return;
     }
 
-    const missingLicense = [];
-    if (category.requires_license) {
-      ["licenseType", "licenseNumber", "federationCountry"].forEach((key) => {
-        if (!requiredString(body, key)) missingLicense.push(key);
-      });
-    }
-
-    if (missingLicense.length) {
+    if (category.requires_license && !requiredString(body, "licenseNumber")) {
       json(response, 400, {
         ok: false,
         code: "license_required",
-        error: "Kategoria PRO wymaga typu licencji, numeru licencji i kraju federacji.",
-        missing: missingLicense,
+        error: "Podaj numer licencji UCI / PZKol.",
+        missing: ["licenseNumber"],
       });
       return;
     }

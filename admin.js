@@ -915,10 +915,7 @@ function openDetails(registration) {
       <section>
         <h3>Licencja</h3>
         <div class="detail-list">
-          <p><strong>Typ</strong><span>${escapeHtml(registration.license_type || "-")}</span></p>
-          <p><strong>Numer</strong><span>${escapeHtml(registration.license_number || "-")}</span></p>
-          <p><strong>UCI ID</strong><span>${escapeHtml(registration.uci_id || "-")}</span></p>
-          <p><strong>Kraj federacji</strong><span>${escapeHtml(registration.federation_country || "-")}</span></p>
+          <p><strong>Numer licencji UCI / PZKol</strong><span>${escapeHtml(registration.license_number || "-")}</span></p>
         </div>
       </section>
       <section>
