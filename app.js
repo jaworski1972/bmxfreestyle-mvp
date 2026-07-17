@@ -196,6 +196,16 @@ function sortEventsForDisplay(events) {
   });
 }
 
+function defaultHomepageEvent(events) {
+  return events.find((event) => !registrationClosedReason(event)) || events[0] || fallbackEvent;
+}
+
+function preferredCategoryCode(categories) {
+  return categories.some((category) => String(category.code).toUpperCase() === "AMATOR")
+    ? "AMATOR"
+    : String(categories[0]?.code || "AMATOR").toUpperCase();
+}
+
 async function fetchJson(url, fallback) {
   try {
     const response = await fetch(url);
@@ -236,11 +246,17 @@ async function loadConsents(eventId) {
 }
 
 function categoryCards() {
+  const descriptions = {
+    PRO: "Dla zawodników startujących z UCI ID / numerem licencji.",
+    AMATOR: "Dla osób bez licencji, które chcą wystartować w zawodach.",
+    JUNIOR: "Dla młodszych zawodników. W przypadku osób niepełnoletnich wymagane są dane opiekuna.",
+  };
+
   return fallbackCategories.map((category) => `
     <article class="category-card">
       <span class="card-kicker">${category.requiresLicense ? "Licencja" : "Open"}</span>
       <strong>${category.code}</strong>
-      <p>${category.description}</p>
+      <p>${descriptions[category.code] || category.description}</p>
       ${category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Bez licencji</span>'}
     </article>
   `).join("");
@@ -249,6 +265,8 @@ function categoryCards() {
 async function renderHome() {
   const events = await loadEvents();
   const visibleEvents = events.length ? events : [fallbackEvent];
+  const selectedEvent = defaultHomepageEvent(visibleEvents);
+  const selectedCategories = await loadCategories(selectedEvent.id);
   app.innerHTML = `
     <section class="hero home-hero image-hero" aria-label="Puchar Polski BMX Freestyle">
       <picture>
@@ -257,42 +275,8 @@ async function renderHome() {
       </picture>
     </section>
     <div class="section-glow-separator" aria-hidden="true"></div>
-    <section class="section action-section">
-      <div class="section-heading">
-        <p class="eyebrow">Start</p>
-        <h2>Co chcesz zrobić?</h2>
-        <p>Wybierz najkrótszą ścieżkę do zapisów, kalendarza albo zasad startu.</p>
-      </div>
-      <div class="action-grid">
-        <article class="action-card">
-          <span class="action-number">01</span>
-          <h3>Zapisz się na zawody</h3>
-          <p>Wybierz wydarzenie i wypełnij formularz zgłoszeniowy.</p>
-          <a class="primary-btn" href="/zawody" data-link>Przejdź do zapisów</a>
-        </article>
-        <article class="action-card">
-          <span class="action-number">02</span>
-          <h3>Sprawdź kalendarz</h3>
-          <p>Zobacz aktualne rundy, lokalizacje i status zapisów.</p>
-          <a class="secondary-btn" href="/zawody" data-link>Zobacz zawody</a>
-        </article>
-        <article class="action-card">
-          <span class="action-number">03</span>
-          <h3>Sprawdź zasady startu</h3>
-          <p>Dowiedz się, jak działają kategorie PRO, AMATOR i JUNIOR oraz jakie zgody są wymagane.</p>
-          <a class="secondary-btn" href="/regulamin" data-link>Zobacz regulamin</a>
-        </article>
-      </div>
-    </section>
+    ${fastSignupSection(visibleEvents, selectedEvent, selectedCategories)}
     <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
-    <section class="section">
-      <div class="section-heading">
-        <p class="eyebrow">Kategorie MVP</p>
-        <h2>PRO, AMATOR, JUNIOR</h2>
-        <p>Trzy czytelne ścieżki startu: licencyjne PRO, otwarty AMATOR i JUNIOR dla młodszych zawodników.</p>
-      </div>
-      <div class="category-grid">${categoryCards()}</div>
-    </section>
     <section class="section">
       <div class="section-heading">
         <p class="eyebrow">Najbliższe zawody</p>
@@ -304,16 +288,83 @@ async function renderHome() {
     <section class="section">
       <div class="section-heading">
         <p class="eyebrow">Flow zgłoszenia</p>
-        <h2>Jak działa zgłoszenie</h2>
+        <h2>Jak działa zgłoszenie?</h2>
+        <p>Wysłanie formularza nie oznacza automatycznej akceptacji zgłoszenia.</p>
       </div>
       <div class="steps">
         <article class="step-card"><span>1</span><h3>Wybierz zawody</h3><p>Publiczna lista aktywnych wydarzeń pod główną domeną.</p></article>
         <article class="step-card"><span>2</span><h3>Wybierz kategorię</h3><p>PRO, AMATOR albo JUNIOR, zgodnie z konfiguracją wydarzenia.</p></article>
-        <article class="step-card"><span>3</span><h3>Uzupełnij dane</h3><p>Licencja tylko dla PRO, opiekun tylko gdy wymagany.</p></article>
-        <article class="step-card"><span>4</span><h3>Czekaj na status</h3><p>Organizator potwierdzi przyjęcie lub poprosi o uzupełnienie danych.</p></article>
+        <article class="step-card"><span>3</span><h3>Wypełnij formularz</h3><p>Licencja tylko dla PRO, opiekun tylko gdy wymagany.</p></article>
+        <article class="step-card"><span>4</span><h3>Poczekaj na weryfikację</h3><p>Organizator potwierdzi przyjęcie lub poprosi o uzupełnienie danych.</p></article>
       </div>
     </section>
+    <section class="section">
+      <div class="section-heading">
+        <p class="eyebrow">Kategorie startowe</p>
+        <h2>PRO, AMATOR, JUNIOR</h2>
+        <p>Trzy czytelne ścieżki startu: licencyjne PRO, otwarty AMATOR i JUNIOR dla młodszych zawodników.</p>
+      </div>
+      <div class="category-grid">${categoryCards()}</div>
+    </section>
     ${faqSection()}
+  `;
+  setupFastSignup({ events: visibleEvents, initialCategories: selectedCategories });
+}
+
+function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCode(categories)) {
+  return categories.map((category) => {
+    const code = String(category.code || "").toUpperCase();
+    return `
+      <label class="fast-category-tile">
+        <input type="radio" name="fastCategory" value="${escapeHtml(code)}" ${code === selectedCode ? "checked" : ""} />
+        <span>
+          <strong>${escapeHtml(code)}</strong>
+          <small>${escapeHtml(category.description || "")}</small>
+        </span>
+      </label>
+    `;
+  }).join("");
+}
+
+function fastSignupSection(events, selectedEvent, categories) {
+  const closedReason = registrationClosedReason(selectedEvent);
+  const selectedCode = preferredCategoryCode(categories);
+  return `
+    <section class="fast-signup-section" id="fastSignup">
+      <div class="fast-signup-panel">
+        <div class="fast-signup-header">
+          <p class="eyebrow">Szybki zapis</p>
+          <h2>Zapisz się na zawody</h2>
+          <p>Wybierz zawody i kategorię, a następnie przejdź do formularza zgłoszeniowego.</p>
+          <small>Zgłoszenie trafia do weryfikacji organizatora. Wysłanie formularza nie oznacza automatycznej akceptacji.</small>
+        </div>
+        <div class="fast-signup-flow">
+          <div class="fast-signup-step">
+            <label for="fastEventSelect">01 Wybierz zawody</label>
+            <select id="fastEventSelect">
+              ${events.map((event) => `
+                <option value="${escapeHtml(event.slug)}" ${event.slug === selectedEvent.slug ? "selected" : ""}>
+                  ${escapeHtml(event.name)} · ${escapeHtml(statusLabel(event.status))}
+                </option>
+              `).join("")}
+            </select>
+            <span class="fast-status ${statusClass(selectedEvent.status)}" id="fastEventStatus">${escapeHtml(statusLabel(selectedEvent.status))}</span>
+            <a class="fast-calendar-link" href="/zawody" data-link>Zobacz wszystkie rundy w kalendarzu</a>
+          </div>
+          <div class="fast-signup-step fast-category-step">
+            <p class="fast-step-label">02 Wybierz kategorię</p>
+            <div class="fast-category-grid" id="fastCategoryGrid">
+              ${fastSignupCategoryTiles(categories, selectedCode)}
+            </div>
+          </div>
+          <div class="fast-signup-step fast-submit-step">
+            <p class="fast-step-label">03 Przejdź dalej</p>
+            <button class="fast-submit-btn" id="fastSignupButton" type="button" ${closedReason ? "disabled" : ""}>Rozpocznij zapis</button>
+            <p class="fast-signup-message" id="fastSignupMessage">${escapeHtml(closedReason || "Przejdziesz do formularza z wybraną kategorią.")}</p>
+          </div>
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -335,6 +386,48 @@ function eventCard(event) {
       </div>
     </article>
   `;
+}
+
+function setupFastSignup({ events, initialCategories }) {
+  const section = document.querySelector("#fastSignup");
+  if (!section) return;
+
+  const eventSelect = section.querySelector("#fastEventSelect");
+  const categoryGrid = section.querySelector("#fastCategoryGrid");
+  const statusElement = section.querySelector("#fastEventStatus");
+  const message = section.querySelector("#fastSignupMessage");
+  const submitButton = section.querySelector("#fastSignupButton");
+  let selectedEvent = events.find((event) => event.slug === eventSelect.value) || events[0] || fallbackEvent;
+  let selectedCategories = initialCategories.length ? initialCategories : fallbackCategories;
+
+  function selectedCategoryCode() {
+    return section.querySelector('input[name="fastCategory"]:checked')?.value || preferredCategoryCode(selectedCategories);
+  }
+
+  function updateSubmitState() {
+    const closedReason = registrationClosedReason(selectedEvent);
+    submitButton.disabled = Boolean(closedReason) || selectedCategories.length === 0;
+    message.textContent = closedReason || (selectedCategories.length ? "Przejdziesz do formularza z wybraną kategorią." : "Brak aktywnych kategorii dla tego wydarzenia.");
+    statusElement.textContent = statusLabel(selectedEvent.status);
+    statusElement.className = `fast-status ${statusClass(selectedEvent.status)}`;
+  }
+
+  async function updateCategoriesForEvent() {
+    selectedEvent = events.find((event) => event.slug === eventSelect.value) || selectedEvent;
+    categoryGrid.innerHTML = '<p class="fast-signup-message">Ładuję kategorie...</p>';
+    selectedCategories = await loadCategories(selectedEvent.id);
+    categoryGrid.innerHTML = fastSignupCategoryTiles(selectedCategories);
+    updateSubmitState();
+  }
+
+  eventSelect.addEventListener("change", updateCategoriesForEvent);
+  submitButton.addEventListener("click", () => {
+    if (submitButton.disabled) return;
+    const target = `/zapisy/${selectedEvent.slug}?category=${encodeURIComponent(selectedCategoryCode())}`;
+    window.history.pushState({}, "", target);
+    router();
+  });
+  updateSubmitState();
 }
 
 async function renderEvents() {
@@ -401,6 +494,10 @@ async function renderSignupPlaceholder(slug) {
   const consents = await loadConsents(event.id);
   const closedReason = registrationClosedReason(event);
   const formDisabled = Boolean(closedReason) || categories.length === 0;
+  const categoryParam = new URLSearchParams(window.location.search).get("category");
+  const preselectedCategoryCode = String(categoryParam || "").trim().toUpperCase();
+  const preselectedCategory = categories.find((category) => String(category.code).toUpperCase() === preselectedCategoryCode);
+  const checkedCategoryId = preselectedCategory?.id || categories[0]?.id || "";
   const statusMessage = closedReason
     ? closedReason
     : categories.length === 0
@@ -440,7 +537,7 @@ async function renderSignupPlaceholder(slug) {
                   data-code="${escapeHtml(category.code)}"
                   data-age-max="${escapeHtml(category.ageMax ?? category.age_max ?? "")}"
                   data-requires-license="${category.requiresLicense || category.requires_license ? "true" : "false"}"
-                  ${index === 0 ? "checked" : ""}
+                  ${category.id === checkedCategoryId ? "checked" : ""}
                   ${formDisabled ? "disabled" : ""}
                 />
                 <span>
@@ -877,7 +974,7 @@ document.addEventListener("click", (event) => {
   const url = new URL(link.href);
   if (url.origin !== window.location.origin) return;
   event.preventDefault();
-  window.history.pushState({}, "", url.pathname);
+  window.history.pushState({}, "", `${url.pathname}${url.search}`);
   router();
 });
 
