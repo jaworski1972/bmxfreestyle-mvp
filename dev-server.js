@@ -132,12 +132,25 @@ function readJsonBody(request) {
 
 function ageAtDate(birthDateValue, targetDateValue) {
   const birthDate = new Date(`${birthDateValue}T12:00:00`);
-  const targetDate = new Date(targetDateValue);
+  const rawTarget = String(targetDateValue || "");
+  const targetDate = /^\d{4}-\d{2}-\d{2}/.test(rawTarget) ? new Date(`${rawTarget.slice(0, 10)}T12:00:00`) : new Date(targetDateValue);
   if (Number.isNaN(birthDate.getTime()) || Number.isNaN(targetDate.getTime())) return null;
   let age = targetDate.getFullYear() - birthDate.getFullYear();
   const monthDiff = targetDate.getMonth() - birthDate.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && targetDate.getDate() < birthDate.getDate())) age -= 1;
   return age;
+}
+
+function entryTypeFromBody(body) {
+  const entryType = normalizeText(body.entryType).toLowerCase();
+  const categoryCode = normalizeText(body.categoryCode).toUpperCase();
+  if (entryType === "pro" || categoryCode === "PRO") return "pro";
+  return "open";
+}
+
+function assignedCategoryCodeForEntry(entryType, age) {
+  if (entryType === "pro") return "PRO";
+  return age < 15 ? "JUNIOR" : "AMATOR";
 }
 
 function ageAtEvent(registration) {
@@ -502,7 +515,6 @@ async function handleMockApi(request, response) {
   if (request.method === "POST" && url.pathname === "/api/register") {
     const body = await readJsonBody(request);
     const event = mockEvents.find((item) => item.id === body.eventId || item.slug === body.eventSlug);
-    const category = mockCategories.find((item) => item.id === body.categoryId || (item.eventId === event?.id && item.code === body.categoryCode));
 
     if (!event) {
       sendJson(response, 404, { ok: false, code: "event_not_found", error: "Nie znaleziono wybranego wydarzenia." });
@@ -513,11 +525,6 @@ async function handleMockApi(request, response) {
       sendJson(response, 409, { ok: false, code: "registration_closed", error: closedReason });
       return true;
     }
-    if (!category) {
-      sendJson(response, 400, { ok: false, code: "category_not_found", error: "Nie znaleziono wybranej kategorii." });
-      return true;
-    }
-
     const required = ["firstName", "lastName", "birthDate", "email", "phone", "city", "country"];
     const missing = required.filter((key) => !normalizeText(body[key]));
     if (missing.length) {
@@ -526,14 +533,26 @@ async function handleMockApi(request, response) {
     }
 
     const age = ageAtDate(body.birthDate, event.startsAt);
-    const minor = Number.isFinite(age) && age < 18;
-    const juniorMaxAge = Number(category.ageMax ?? event.settings.juniorMaxAge ?? 15);
-    if (category.code === "JUNIOR" && age > juniorMaxAge) {
-      sendJson(response, 400, { ok: false, code: "junior_age_mismatch", error: `Kategoria JUNIOR jest dostępna dla zawodników, którzy w dniu startu wydarzenia mają maksymalnie ${juniorMaxAge} lat.` });
+    if (!Number.isFinite(age) || age < 0) {
+      sendJson(response, 400, { ok: false, code: "invalid_birth_date", error: "Nie udało się obliczyć wieku zawodnika dla daty wydarzenia." });
+      return true;
+    }
+    const entryType = entryTypeFromBody(body);
+    const assignedCategoryCode = assignedCategoryCodeForEntry(entryType, age);
+    const category = mockCategories.find((item) => item.eventId === event.id && item.code === assignedCategoryCode && item.isActive);
+    if (!category) {
+      sendJson(response, 400, {
+        ok: false,
+        code: "category_not_available",
+        error: "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.",
+        assignedCategoryCode,
+      });
       return true;
     }
 
-    if (category.requiresLicense && !normalizeText(body.licenseNumber)) {
+    const minor = Number.isFinite(age) && age < 18;
+
+    if (entryType === "pro" && !normalizeText(body.licenseNumber)) {
       sendJson(response, 400, { ok: false, code: "license_required", error: "Podaj UCI ID lub numer licencji." });
       return true;
     }

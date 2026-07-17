@@ -21,7 +21,8 @@ function parseDate(value) {
 
 function ageAtDate(birthDateValue, targetDateValue) {
   const birthDate = parseDate(birthDateValue);
-  const targetDate = new Date(targetDateValue || Date.now());
+  const targetDatePart = String(targetDateValue || "").slice(0, 10);
+  const targetDate = parseDate(targetDatePart) || new Date(targetDateValue || Date.now());
   if (!birthDate || Number.isNaN(targetDate.getTime())) return null;
 
   let age = targetDate.getUTCFullYear() - birthDate.getUTCFullYear();
@@ -29,6 +30,18 @@ function ageAtDate(birthDateValue, targetDateValue) {
   const dayDiff = targetDate.getUTCDate() - birthDate.getUTCDate();
   if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) age -= 1;
   return age;
+}
+
+function entryTypeFromBody(body) {
+  const entryType = cleanText(body.entryType, 40).toLowerCase();
+  const categoryCode = cleanText(body.categoryCode, 40).toUpperCase();
+  if (entryType === "pro" || categoryCode === "PRO") return "pro";
+  return "open";
+}
+
+function assignedCategoryCodeForEntry(entryType, age) {
+  if (entryType === "pro") return "PRO";
+  return age < 15 ? "JUNIOR" : "AMATOR";
 }
 
 function normalizeConsentInput(consents) {
@@ -96,20 +109,14 @@ async function fetchEvent(supabase, body) {
   return data || null;
 }
 
-async function fetchCategory(supabase, body, eventId) {
-  const categoryId = cleanText(body.categoryId, 80);
-  const categoryCode = cleanText(body.categoryCode, 40).toUpperCase();
-  let query = supabase
+async function fetchCategoryByCode(supabase, eventId, categoryCode) {
+  const { data, error } = await supabase
     .from("event_categories")
     .select("*")
     .eq("event_id", eventId)
-    .eq("is_active", true);
-
-  if (categoryId) query = query.eq("id", categoryId);
-  else if (categoryCode) query = query.eq("code", categoryCode);
-  else return null;
-
-  const { data, error } = await query.maybeSingle();
+    .eq("is_active", true)
+    .eq("code", categoryCode)
+    .maybeSingle();
   if (error) throw error;
   return data || null;
 }
@@ -161,8 +168,6 @@ module.exports = async function handler(request, response) {
     const missing = required.filter((key) => !requiredString(body, key));
 
     if (!requiredString(body, "eventId") && !requiredString(body, "eventSlug")) missing.push("eventId");
-    if (!requiredString(body, "categoryId") && !requiredString(body, "categoryCode")) missing.push("categoryId");
-
     if (missing.length) {
       json(response, 400, {
         ok: false,
@@ -210,12 +215,6 @@ module.exports = async function handler(request, response) {
       return;
     }
 
-    const category = await fetchCategory(supabase, body, event.id);
-    if (!category) {
-      json(response, 400, { ok: false, code: "category_not_found", error: "Nie znaleziono wybranej kategorii." });
-      return;
-    }
-
     const eventAge = ageAtDate(body.birthDate, event.starts_at);
     if (eventAge === null || eventAge < 0) {
       json(response, 400, {
@@ -226,22 +225,22 @@ module.exports = async function handler(request, response) {
       return;
     }
 
-    const minor = eventAge < 18;
-    const juniorMaxAge = Number.isFinite(Number(category.age_max))
-      ? Number(category.age_max)
-      : Number(event.settings?.juniorMaxAge ?? 15);
-
-    if (category.code === "JUNIOR" && eventAge > juniorMaxAge) {
+    const entryType = entryTypeFromBody(body);
+    const assignedCategoryCode = assignedCategoryCodeForEntry(entryType, eventAge);
+    const category = await fetchCategoryByCode(supabase, event.id, assignedCategoryCode);
+    if (!category) {
       json(response, 400, {
         ok: false,
-        code: "junior_age_mismatch",
-        error: `Kategoria JUNIOR jest dostępna dla zawodników, którzy w dniu startu wydarzenia mają maksymalnie ${juniorMaxAge} lat.`,
-        age: eventAge,
+        code: "category_not_available",
+        error: "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.",
+        assignedCategoryCode,
       });
       return;
     }
 
-    if (category.requires_license && !requiredString(body, "licenseNumber")) {
+    const minor = eventAge < 18;
+
+    if (entryType === "pro" && !requiredString(body, "licenseNumber")) {
       json(response, 400, {
         ok: false,
         code: "license_required",

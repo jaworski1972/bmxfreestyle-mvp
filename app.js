@@ -210,6 +210,19 @@ function preferredCategoryCode(categories) {
     : String(categories[0]?.code || "AMATOR").toUpperCase();
 }
 
+function categoryLabel(code) {
+  return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
+}
+
+function categoryByCode(categories, code) {
+  const normalized = String(code || "").toUpperCase();
+  return categories.find((category) => String(category.code || "").toUpperCase() === normalized) || null;
+}
+
+function assignedOpenCategoryCode(age) {
+  return Number.isFinite(age) && age < 15 ? "JUNIOR" : "AMATOR";
+}
+
 async function fetchJson(url, fallback) {
   try {
     const response = await fetch(url);
@@ -259,7 +272,7 @@ function categoryCards() {
   return fallbackCategories.map((category) => `
     <article class="category-card">
       <span class="card-kicker">${category.requiresLicense ? "Licencja" : "Open"}</span>
-      <strong>${category.code}</strong>
+      <strong>${categoryLabel(category.code)}</strong>
       <p>${descriptions[category.code] || category.description}</p>
       ${category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Bez licencji</span>'}
     </article>
@@ -314,8 +327,8 @@ function homepageFlowSection() {
       </div>
       <div class="steps">
         <article class="step-card"><span>1</span><h3>Wybierz zawody</h3><p>Publiczna lista aktywnych wydarzeń pod główną domeną.</p></article>
-        <article class="step-card"><span>2</span><h3>Wybierz kategorię</h3><p>PRO, AMATOR albo JUNIOR, zgodnie z konfiguracją wydarzenia.</p></article>
-        <article class="step-card"><span>3</span><h3>Wypełnij formularz</h3><p>Licencja tylko dla PRO, opiekun tylko gdy wymagany.</p></article>
+        <article class="step-card"><span>2</span><h3>Wybierz ścieżkę</h3><p>PRO z licencją albo start bez licencji.</p></article>
+        <article class="step-card"><span>3</span><h3>Wypełnij formularz</h3><p>AMATOR albo JUNIOR U15 przypiszemy na podstawie daty urodzenia.</p></article>
         <article class="step-card"><span>4</span><h3>Poczekaj na weryfikację</h3><p>Organizator potwierdzi przyjęcie lub poprosi o uzupełnienie danych.</p></article>
       </div>
     </section>
@@ -327,45 +340,44 @@ function homepageCategoriesSection() {
     <section class="section homepage-optional-section">
       <div class="section-heading">
         <p class="eyebrow">Kategorie startowe</p>
-        <h2>PRO, AMATOR, JUNIOR</h2>
-        <p>Trzy czytelne ścieżki startu: licencyjne PRO, otwarty AMATOR i JUNIOR dla młodszych zawodników.</p>
+        <h2>PRO, AMATOR, JUNIOR U15</h2>
+        <p>PRO pozostaje ścieżką licencyjną. Zawodnicy bez licencji trafiają do AMATOR albo JUNIOR U15 według wieku w dniu zawodów.</p>
       </div>
       <div class="category-grid">${categoryCards()}</div>
     </section>
   `;
 }
 
-function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCode(categories)) {
-  const shortDescriptions = {
-    PRO: "Dla zawodników z UCI ID / numerem licencji.",
-    AMATOR: "Dla zawodników bez licencji.",
-    JUNIOR: "Dla młodszych zawodników.",
-  };
-
-  return categories.map((category) => {
-    const code = String(category.code || "").toUpperCase();
-    return `
-      <label class="fast-category-tile">
-        <input type="radio" name="fastCategory" value="${escapeHtml(code)}" ${code === selectedCode ? "checked" : ""} />
-        <span>
-          <strong>${escapeHtml(code)}</strong>
-          <small>${escapeHtml(shortDescriptions[code] || category.description || "")}</small>
-        </span>
-      </label>
-    `;
-  }).join("");
+function fastSignupEntryTiles(categories) {
+  const hasPro = Boolean(categoryByCode(categories, "PRO"));
+  const hasOpen = Boolean(categoryByCode(categories, "AMATOR") || categoryByCode(categories, "JUNIOR"));
+  return `
+    <label class="fast-category-tile">
+      <input type="radio" name="fastEntryType" value="pro" ${hasPro ? "" : "disabled"} />
+      <span>
+        <strong>Startuję w kategorii PRO</strong>
+        <small>Dla zawodników z ważnym UCI ID / numerem licencji.</small>
+      </span>
+    </label>
+    <label class="fast-category-tile">
+      <input type="radio" name="fastEntryType" value="open" ${hasOpen ? "checked" : "disabled"} />
+      <span>
+        <strong>Startuję bez licencji</strong>
+        <small>System przypisze kategorię AMATOR albo JUNIOR na podstawie daty urodzenia.</small>
+      </span>
+    </label>
+  `;
 }
 
 function fastSignupSection(events, selectedEvent, categories) {
   const closedReason = registrationClosedReason(selectedEvent);
-  const selectedCode = preferredCategoryCode(categories);
   return `
     <section class="fast-signup-section" id="fastSignup">
       <div class="fast-signup-panel">
         <div class="fast-signup-header">
           <p class="eyebrow">Szybki zapis</p>
           <h2>Zapisz się na zawody</h2>
-          <p>Wybierz zawody i kategorię, a następnie przejdź do formularza zgłoszeniowego.</p>
+          <p>Wybierz zawody i ścieżkę startu, a następnie przejdź do formularza zgłoszeniowego.</p>
           <small>Zgłoszenie trafia do weryfikacji organizatora. Wysłanie formularza nie oznacza automatycznej akceptacji.</small>
         </div>
         <div class="fast-signup-flow">
@@ -382,15 +394,15 @@ function fastSignupSection(events, selectedEvent, categories) {
             <a class="fast-calendar-link" href="/zawody" data-link>Zobacz wszystkie rundy w kalendarzu</a>
           </div>
           <div class="fast-signup-step fast-category-step">
-            <p class="fast-step-label">02 Wybierz kategorię</p>
+            <p class="fast-step-label">02 Wybierz ścieżkę</p>
             <div class="fast-category-grid" id="fastCategoryGrid">
-              ${fastSignupCategoryTiles(categories, selectedCode)}
+              ${fastSignupEntryTiles(categories)}
             </div>
           </div>
           <div class="fast-signup-step fast-submit-step">
             <p class="fast-step-label">03 Przejdź dalej</p>
             <button class="fast-submit-btn" id="fastSignupButton" type="button" ${closedReason ? "disabled" : ""}>Rozpocznij zapis</button>
-            <p class="fast-signup-message" id="fastSignupMessage">${escapeHtml(closedReason || "Przejdziesz do formularza z wybraną kategorią.")}</p>
+            <p class="fast-signup-message" id="fastSignupMessage">${escapeHtml(closedReason || "Przejdziesz do formularza z wybraną ścieżką startu.")}</p>
           </div>
         </div>
       </div>
@@ -430,30 +442,31 @@ function setupFastSignup({ events, initialCategories }) {
   let selectedEvent = events.find((event) => event.slug === eventSelect.value) || events[0] || fallbackEvent;
   let selectedCategories = initialCategories.length ? initialCategories : fallbackCategories;
 
-  function selectedCategoryCode() {
-    return section.querySelector('input[name="fastCategory"]:checked')?.value || preferredCategoryCode(selectedCategories);
+  function selectedEntryType() {
+    return section.querySelector('input[name="fastEntryType"]:checked')?.value || "open";
   }
 
   function updateSubmitState() {
     const closedReason = registrationClosedReason(selectedEvent);
-    submitButton.disabled = Boolean(closedReason) || selectedCategories.length === 0;
-    message.textContent = closedReason || (selectedCategories.length ? "Przejdziesz do formularza z wybraną kategorią." : "Brak aktywnych kategorii dla tego wydarzenia.");
+    const hasEntry = Boolean(categoryByCode(selectedCategories, "PRO") || categoryByCode(selectedCategories, "AMATOR") || categoryByCode(selectedCategories, "JUNIOR"));
+    submitButton.disabled = Boolean(closedReason) || !hasEntry;
+    message.textContent = closedReason || (hasEntry ? "Przejdziesz do formularza z wybraną ścieżką startu." : "Brak aktywnych kategorii dla tego wydarzenia.");
     statusElement.textContent = statusLabel(selectedEvent.status);
     statusElement.className = `fast-status ${statusClass(selectedEvent.status)}`;
   }
 
   async function updateCategoriesForEvent() {
     selectedEvent = events.find((event) => event.slug === eventSelect.value) || selectedEvent;
-    categoryGrid.innerHTML = '<p class="fast-signup-message">Ładuję kategorie...</p>';
+    categoryGrid.innerHTML = '<p class="fast-signup-message">Ładuję ścieżki startu...</p>';
     selectedCategories = await loadCategories(selectedEvent.id);
-    categoryGrid.innerHTML = fastSignupCategoryTiles(selectedCategories);
+    categoryGrid.innerHTML = fastSignupEntryTiles(selectedCategories);
     updateSubmitState();
   }
 
   eventSelect.addEventListener("change", updateCategoriesForEvent);
   submitButton.addEventListener("click", () => {
     if (submitButton.disabled) return;
-    const target = `/zapisy/${selectedEvent.slug}?category=${encodeURIComponent(selectedCategoryCode())}`;
+    const target = `/zapisy/${selectedEvent.slug}?entryType=${encodeURIComponent(selectedEntryType())}`;
     window.history.pushState({}, "", target);
     router();
   });
@@ -524,10 +537,11 @@ async function renderSignupPlaceholder(slug) {
   const consents = await loadConsents(event.id);
   const closedReason = registrationClosedReason(event);
   const formDisabled = Boolean(closedReason) || categories.length === 0;
-  const categoryParam = new URLSearchParams(window.location.search).get("category");
+  const params = new URLSearchParams(window.location.search);
+  const entryTypeParam = String(params.get("entryType") || "").trim().toLowerCase();
+  const categoryParam = params.get("category");
   const preselectedCategoryCode = String(categoryParam || "").trim().toUpperCase();
-  const preselectedCategory = categories.find((category) => String(category.code).toUpperCase() === preselectedCategoryCode);
-  const checkedCategoryId = preselectedCategory?.id || categories[0]?.id || "";
+  const initialEntryType = entryTypeParam === "pro" || preselectedCategoryCode === "PRO" ? "pro" : "open";
   const statusMessage = closedReason
     ? closedReason
     : categories.length === 0
@@ -555,29 +569,40 @@ async function renderSignupPlaceholder(slug) {
         <section class="form-section">
           <div>
             <p class="eyebrow">Krok 1</p>
-            <h2>Wybierz kategorię</h2>
+            <h2>Wybierz ścieżkę startu</h2>
+            <p>Jeśli startujesz bez licencji, system przypisze AMATOR albo JUNIOR U15 po wpisaniu daty urodzenia.</p>
           </div>
-          <div class="category-choice-grid">
-            ${categories.map((category, index) => `
-              <label class="category-choice">
-                <input
-                  type="radio"
-                  name="categoryId"
-                  value="${escapeHtml(category.id)}"
-                  data-code="${escapeHtml(category.code)}"
-                  data-age-max="${escapeHtml(category.ageMax ?? category.age_max ?? "")}"
-                  data-requires-license="${category.requiresLicense || category.requires_license ? "true" : "false"}"
-                  ${category.id === checkedCategoryId ? "checked" : ""}
-                  ${formDisabled ? "disabled" : ""}
-                />
-                <span>
-                  <strong>${escapeHtml(category.code)}</strong>
-                  <small>${escapeHtml(category.description || "")}</small>
-                  ${category.requiresLicense || category.requires_license ? "<em>Licencja wymagana</em>" : "<em>Bez licencji</em>"}
-                </span>
-              </label>
-            `).join("")}
+          <div class="category-choice-grid entry-choice-grid">
+            <label class="category-choice">
+              <input
+                type="radio"
+                name="entryType"
+                value="pro"
+                ${initialEntryType === "pro" ? "checked" : ""}
+                ${formDisabled || !categoryByCode(categories, "PRO") ? "disabled" : ""}
+              />
+              <span>
+                <strong>PRO — mam licencję</strong>
+                <small>Dla zawodników z UCI ID / numerem licencji.</small>
+                <em>Licencja wymagana</em>
+              </span>
+            </label>
+            <label class="category-choice">
+              <input
+                type="radio"
+                name="entryType"
+                value="open"
+                ${initialEntryType !== "pro" ? "checked" : ""}
+                ${formDisabled || (!categoryByCode(categories, "AMATOR") && !categoryByCode(categories, "JUNIOR")) ? "disabled" : ""}
+              />
+              <span>
+                <strong>Start bez licencji</strong>
+                <small>AMATOR albo JUNIOR U15 zostanie przypisany automatycznie na podstawie daty urodzenia.</small>
+                <em>Bez licencji</em>
+              </span>
+            </label>
           </div>
+          <p class="inline-status" id="assignedCategoryStatus"></p>
         </section>
 
         <section class="form-section">
@@ -687,7 +712,8 @@ async function renderSignupPlaceholder(slug) {
 }
 
 function eventStartDate(event) {
-  const date = new Date(event.startsAt || event.starts_at);
+  const raw = String(event.startsAt || event.starts_at || "");
+  const date = /^\d{4}-\d{2}-\d{2}/.test(raw) ? new Date(`${raw.slice(0, 10)}T12:00:00`) : new Date(raw);
   return Number.isNaN(date.getTime()) ? new Date() : date;
 }
 
@@ -701,9 +727,16 @@ function calculateAge(birthDateValue, targetDate) {
   return age;
 }
 
-function selectedCategory(form, categories) {
-  const checked = form.querySelector('input[name="categoryId"]:checked');
-  return categories.find((category) => category.id === checked?.value) || categories[0] || null;
+function selectedEntryType(form) {
+  return form.querySelector('input[name="entryType"]:checked')?.value || "open";
+}
+
+function selectedCategoryForEntry(form, categories, event) {
+  const entryType = selectedEntryType(form);
+  if (entryType === "pro") return categoryByCode(categories, "PRO");
+  const age = calculateAge(form.elements.birthDate.value, eventStartDate(event));
+  if (!Number.isFinite(age)) return null;
+  return categoryByCode(categories, assignedOpenCategoryCode(age));
 }
 
 function isLicenseRequired(category) {
@@ -737,6 +770,7 @@ function setMessage(element, message, type = "info") {
 function setupRegistrationForm({ event, categories, consents }) {
   const form = document.querySelector("#registrationForm");
   const ageStatus = document.querySelector("#ageStatus");
+  const assignedCategoryStatus = document.querySelector("#assignedCategoryStatus");
   const licenseSection = document.querySelector("#licenseSection");
   const guardianSection = document.querySelector("#guardianSection");
   const consentItems = [...document.querySelectorAll(".consent-item")];
@@ -745,17 +779,16 @@ function setupRegistrationForm({ event, categories, consents }) {
   const submitButton = form.querySelector(".submit-btn");
 
   function formState() {
-    const category = selectedCategory(form, categories);
+    const entryType = selectedEntryType(form);
     const age = calculateAge(form.elements.birthDate.value, eventStartDate(event));
+    const category = selectedCategoryForEntry(form, categories, event);
     const minor = Number.isFinite(age) && age < 18;
-    const juniorMax = category?.code === "JUNIOR" ? categoryAgeMax(category, event) : null;
-    const juniorMismatch = category?.code === "JUNIOR" && Number.isFinite(age) && juniorMax !== null && age > juniorMax;
-    return { age, category, juniorMax, juniorMismatch, minor };
+    return { age, category, entryType, minor };
   }
 
   function updateDynamicState() {
     const state = formState();
-    const needsLicense = isLicenseRequired(state.category);
+    const needsLicense = state.entryType === "pro";
 
     licenseSection.hidden = !needsLicense;
     setRequired([
@@ -779,11 +812,8 @@ function setupRegistrationForm({ event, categories, consents }) {
     });
 
     if (state.age === null) {
-      ageStatus.textContent = "Podaj datę urodzenia, aby sprawdzić kategorię i wymagania opiekuna.";
+      ageStatus.textContent = "Podaj datę urodzenia, aby sprawdzić wymagania opiekuna.";
       ageStatus.dataset.type = "info";
-    } else if (state.juniorMismatch) {
-      ageStatus.textContent = `Zawodnik ma ${state.age} lat w dniu startu. Kategoria JUNIOR dopuszcza maksymalnie ${state.juniorMax} lat.`;
-      ageStatus.dataset.type = "error";
     } else if (state.minor) {
       ageStatus.textContent = `Zawodnik ma ${state.age} lat w dniu startu. Dane opiekuna i zgody opiekuna są wymagane.`;
       ageStatus.dataset.type = "warning";
@@ -792,10 +822,25 @@ function setupRegistrationForm({ event, categories, consents }) {
       ageStatus.dataset.type = "success";
     }
 
+    if (state.entryType === "pro") {
+      assignedCategoryStatus.textContent = "Wybrano kategorię: PRO. UCI ID / numer licencji jest wymagany.";
+      assignedCategoryStatus.dataset.type = "warning";
+    } else if (state.age === null) {
+      assignedCategoryStatus.textContent = "Po wpisaniu daty urodzenia przypiszemy kategorię AMATOR albo JUNIOR U15.";
+      assignedCategoryStatus.dataset.type = "info";
+    } else if (state.category) {
+      assignedCategoryStatus.textContent = `Na podstawie daty urodzenia przypisano kategorię: ${categoryLabel(state.category.code)}`;
+      assignedCategoryStatus.dataset.type = "success";
+    } else {
+      assignedCategoryStatus.textContent = "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.";
+      assignedCategoryStatus.dataset.type = "error";
+    }
+
     const fullName = [form.elements.firstName.value, form.elements.lastName.value].filter(Boolean).join(" ") || "Nie podano";
     summary.innerHTML = `
       <p><strong>Wydarzenie:</strong> ${escapeHtml(event.name)}</p>
-      <p><strong>Kategoria:</strong> ${escapeHtml(state.category?.code || "Nie wybrano")}</p>
+      <p><strong>Ścieżka:</strong> ${state.entryType === "pro" ? "PRO" : "Start bez licencji"}</p>
+      <p><strong>Kategoria:</strong> ${escapeHtml(categoryLabel(state.category?.code) || "Do ustalenia po dacie urodzenia")}</p>
       <p><strong>Zawodnik:</strong> ${escapeHtml(fullName)}</p>
       <p><strong>Wiek w dniu startu:</strong> ${state.age === null ? "Podaj datę urodzenia" : state.age}</p>
       <p><strong>Opiekun:</strong> ${state.minor ? "wymagany" : "niewymagany"}</p>
@@ -805,12 +850,10 @@ function setupRegistrationForm({ event, categories, consents }) {
 
   function validateForm() {
     const state = formState();
-    if (!state.category) return "Wybierz kategorię startową.";
+    if (!state.entryType) return "Wybierz ścieżkę startu.";
     if (state.age === null) return "Podaj poprawną datę urodzenia.";
-    if (state.juniorMismatch) {
-      return `Zawodnik nie spełnia warunku wieku dla kategorii JUNIOR. Maksymalny wiek: ${state.juniorMax} lat.`;
-    }
-    if (isLicenseRequired(state.category)) {
+    if (!state.category) return "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.";
+    if (state.entryType === "pro") {
       if (!form.elements.licenseNumber.value.trim()) {
         return "Podaj UCI ID lub numer licencji.";
       }
@@ -846,8 +889,9 @@ function setupRegistrationForm({ event, categories, consents }) {
     return {
       eventId: event.id,
       eventSlug: event.slug,
-      categoryId: state.category.id,
-      categoryCode: state.category.code,
+      entryType: state.entryType,
+      categoryId: state.category?.id || "",
+      categoryCode: state.category?.code || "",
       firstName: form.elements.firstName.value.trim(),
       lastName: form.elements.lastName.value.trim(),
       birthDate: form.elements.birthDate.value,

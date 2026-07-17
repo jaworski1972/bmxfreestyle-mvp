@@ -1083,6 +1083,9 @@ function openDetails(registration) {
   const requiresLicense = Boolean(registration.event_categories?.requires_license || categoryCode(registration) === "PRO");
   const juniorMax = registration.event_categories?.age_max;
   const juniorOk = categoryCode(registration) !== "JUNIOR" || !Number.isFinite(Number(juniorMax)) || Number(age) <= Number(juniorMax);
+  const categoryAssignmentNote = categoryCode(registration) === "PRO"
+    ? "Kategoria wybrana przez zawodnika — wymagająca licencji"
+    : "Kategoria przypisana automatycznie na podstawie wieku";
   const confirmationLink = registration.confirmation_token
     ? `${window.location.origin}/potwierdz?token=${encodeURIComponent(registration.confirmation_token)}`
     : "";
@@ -1118,6 +1121,7 @@ function openDetails(registration) {
         <h3>Kategoria</h3>
         <div class="detail-list">
           <p><strong>Kategoria</strong><span>${escapeHtml(categoryName(registration))}</span></p>
+          <p><strong>Sposób przypisania</strong><span>${escapeHtml(categoryAssignmentNote)}</span></p>
           <p><strong>Licencja wymagana</strong><span>${requiresLicense ? "Tak" : "Nie"}</span></p>
           <p><strong>Warunek Junior</strong><span>${juniorOk ? "Spełniony / nie dotyczy" : "Niespełniony"}</span></p>
         </div>

@@ -390,6 +390,10 @@ h3 {
   gap: 12px;
 }
 
+.entry-choice-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .category-choice {
   min-height: 172px;
   cursor: pointer;
