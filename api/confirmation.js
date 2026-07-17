@@ -14,6 +14,8 @@ const CONFIRMATION_SELECT = `
   event_categories(code,name)
 `;
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function formatDateRange(event = {}) {
   const start = new Date(event.starts_at);
   const end = event.ends_at ? new Date(event.ends_at) : null;
@@ -83,6 +85,10 @@ module.exports = async function handler(request, response) {
     const token = cleanText(request.query?.token, 120);
     if (!token) {
       json(response, 400, { ok: false, error: "Brakuje tokena potwierdzenia." });
+      return;
+    }
+    if (!UUID_PATTERN.test(token)) {
+      json(response, 400, { ok: false, error: "Nieprawidłowy format tokena potwierdzenia." });
       return;
     }
 
