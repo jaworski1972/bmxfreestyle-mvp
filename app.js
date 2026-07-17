@@ -128,6 +128,7 @@ const partnerGroups = [
         logo: "/assets/partners/gorzow-wielkopolski.png",
         alt: "Gorzów Wielkopolski",
         url: "",
+        logoScale: 1,
       },
       {
         name: "Miasto i Gmina Bogatynia",
@@ -136,6 +137,7 @@ const partnerGroups = [
         logo: "/assets/partners/bogatynia.png",
         alt: "Miasto i Gmina Bogatynia",
         url: "",
+        logoScale: 1.2,
       },
     ],
   },
@@ -150,6 +152,7 @@ const partnerGroups = [
         logo: "/assets/partners/jbl.png",
         alt: "JBL",
         url: "",
+        logoScale: 1.3,
       },
       {
         name: "Monster Energy",
@@ -158,6 +161,7 @@ const partnerGroups = [
         logo: "/assets/partners/monster-energy.png",
         alt: "Monster Energy",
         url: "",
+        logoScale: 2,
       },
       {
         name: "Fox Racing",
@@ -166,6 +170,7 @@ const partnerGroups = [
         logo: "/assets/partners/fox-racing.png",
         alt: "Fox Racing",
         url: "",
+        logoScale: 1,
       },
       {
         name: "RideHub",
@@ -174,6 +179,7 @@ const partnerGroups = [
         logo: "/assets/partners/ridehub.png",
         alt: "RideHub",
         url: "",
+        logoScale: 1,
       },
     ],
   },
@@ -598,6 +604,7 @@ function partnerLogoCard(partner, groupType) {
       src="${escapeHtml(partner.logo)}"
       alt="${escapeHtml(partner.alt || partner.name)}"
       loading="lazy"
+      style="--logo-scale: ${Number(partner.logoScale) || 1}"
       onerror="this.closest('.partner-logo-frame').classList.add('is-placeholder'); this.remove();"
     >
   ` : "";
