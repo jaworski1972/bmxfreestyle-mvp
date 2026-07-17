@@ -30,7 +30,7 @@ with upserted_event as (
     '2027-03-01 10:00:00+01',
     '2027-05-20 23:59:00+02',
     120,
-    'https://bmxfreestyle.pl/regulamin',
+    'https://www.bmxseries.pl/regulamin',
     'Zapisy są otwarte. Organizator potwierdzi przyjęcie zgłoszenia po weryfikacji danych.',
     '{"juniorMaxAge":15,"requireLicenseForPro":true}'::jsonb
   )

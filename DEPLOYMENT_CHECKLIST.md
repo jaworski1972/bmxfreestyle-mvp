@@ -15,7 +15,7 @@ Checklist for staging or production deployment on Vercel with real Supabase and 
 - Do not use the Supabase anon key for serverless API writes.
 - Create a Resend API key.
 - Configure `MAIL_FROM`, `MAIL_REPLY_TO`, and `ADMIN_NOTIFICATION_EMAIL`.
-- Set `APP_URL` to the staging Vercel URL first, then to `https://bmxfreestyle.pl` for production.
+- Set `APP_URL` to the staging Vercel URL first, then to `https://www.bmxseries.pl` for production.
 - Set production admin credentials with `ADMIN_LOGIN`, `ADMIN_PASSWORD`, and `ADMIN_AUTH_SECRET`.
 
 ## Required Vercel Environment Variables
@@ -76,13 +76,13 @@ Checklist for staging or production deployment on Vercel with real Supabase and 
 - Confirm e-mail for a minor goes to the guardian e-mail address.
 - Confirm all e-mail links use `APP_URL`.
 - On staging, confirm links use the staging Vercel URL.
-- On production, confirm links use `https://bmxfreestyle.pl`.
+- On production, confirm links use `https://www.bmxseries.pl`.
 
 ## Domain Cutover
 
-- Add `bmxfreestyle.pl` to the Vercel project.
+- Add `bmxseries.pl` to the Vercel project.
 - Configure DNS according to Vercel instructions.
 - Verify HTTPS certificate in Vercel.
-- Change production `APP_URL` to `https://bmxfreestyle.pl`.
-- Verify Resend sending domain if using `zapisy@bmxfreestyle.pl`.
+- Change production `APP_URL` to `https://www.bmxseries.pl`.
+- Verify Resend sending domain if using `zapisy@bmxseries.pl`.
 - Re-run public, admin, and mail smoke tests after DNS is live.

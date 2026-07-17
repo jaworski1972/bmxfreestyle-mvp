@@ -1,6 +1,6 @@
 # BMX Freestyle Polska
 
-MVP systemu zapisów dla BMX Freestyle Polska działający docelowo pod domeną `https://bmxfreestyle.pl`.
+MVP systemu zapisów dla BMX Freestyle Polska działający docelowo pod domeną `https://www.bmxseries.pl`.
 
 Projekt obejmuje publiczny formularz zapisów, panel organizatora, statusy zgłoszeń, check-in, listy startowe, eksport CSV oraz podstawowe zarządzanie konfiguracją zawodów: wydarzeniami, kategoriami i zgodami.
 
@@ -120,8 +120,8 @@ Minimalny proces wdrożenia:
 3. Ustaw zmienne środowiskowe z sekcji poniżej.
 4. Wdróż staging.
 5. Uruchom checklistę z `DEPLOYMENT_CHECKLIST.md`.
-6. Po pozytywnym smoke-teście podepnij `bmxfreestyle.pl`.
-7. Ustaw `APP_URL=https://bmxfreestyle.pl` i wykonaj ponowny deploy.
+6. Po pozytywnym smoke-teście podepnij `bmxseries.pl`.
+7. Ustaw `APP_URL=https://www.bmxseries.pl` i wykonaj ponowny deploy.
 
 ## Zmienne Środowiskowe
 
@@ -129,11 +129,11 @@ Przykład bez sekretów jest w `.env.example`.
 
 Wymagane na stagingu i produkcji:
 
-- `APP_URL` — bazowy adres używany w linkach mailowych, np. stagingowy URL Vercel albo `https://bmxfreestyle.pl`.
+- `APP_URL` — bazowy adres używany w linkach mailowych, np. stagingowy URL Vercel albo `https://www.bmxseries.pl`.
 - `SUPABASE_URL` — URL projektu Supabase.
 - `SUPABASE_SERVICE_ROLE_KEY` — service role key Supabase używany wyłącznie w serverless API.
 - `RESEND_API_KEY` — API key do wysyłki maili przez Resend.
-- `MAIL_FROM` — nadawca, np. `BMX Freestyle Polska <zapisy@bmxfreestyle.pl>`.
+- `MAIL_FROM` — nadawca, np. `BMX Freestyle Polska <zapisy@bmxseries.pl>`.
 - `MAIL_REPLY_TO` — adres odpowiedzi.
 - `ADMIN_NOTIFICATION_EMAIL` — adres organizatora do przyszłych powiadomień admina.
 - `ADMIN_LOGIN` — produkcyjny login organizatora.
@@ -196,14 +196,14 @@ Konfiguracja maili:
 3. Ustaw `MAIL_FROM`.
 4. Ustaw `MAIL_REPLY_TO`.
 5. Ustaw `ADMIN_NOTIFICATION_EMAIL`.
-6. Zweryfikuj domenę wysyłkową w Resend, jeżeli wysyłasz z adresu w domenie `bmxfreestyle.pl`.
+6. Zweryfikuj domenę wysyłkową w Resend, jeżeli wysyłasz z adresu w domenie `bmxseries.pl`.
 
 Brak konfiguracji Resend nie blokuje rejestracji ani zmiany statusu. API zwróci wtedy informację, że mail został pominięty. Na stagingu warto jednak sprawdzić pełny przepływ mailowy.
 
 Linki w mailach korzystają z `APP_URL`:
 
 - staging: `APP_URL=https://ADRES-STAGINGU-VERCEL`
-- produkcja: `APP_URL=https://bmxfreestyle.pl`
+- produkcja: `APP_URL=https://www.bmxseries.pl`
 
 ## Smoke Testy
 
