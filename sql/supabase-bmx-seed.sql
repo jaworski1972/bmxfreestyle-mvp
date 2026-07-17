@@ -123,7 +123,7 @@ select
 from event_ref
 cross join (
   values
-    ('rules_acceptance', 'Akceptacja regulaminu', 'Potwierdzam zapoznanie się z regulaminem zawodów BMX Freestyle Polska i akceptuję jego postanowienia.', true, false, false, 1),
+    ('rules_acceptance', 'Akceptacja regulaminu', 'Akceptuję Regulamin zawodów.', true, false, false, 1),
     ('health_statement', 'Oświadczenie o stanie zdrowia', 'Oświadczam, że zawodnik nie ma przeciwwskazań zdrowotnych do udziału w zawodach BMX Freestyle.', true, false, false, 2),
     ('gdpr', 'Zgoda RODO', 'Potwierdzam zapoznanie się z informacją o przetwarzaniu danych osobowych na potrzeby organizacji zawodów.', true, false, false, 3),
     ('image', 'Zgoda na wizerunek', 'Wyrażam zgodę na wykorzystanie wizerunku zawodnika w materiałach informacyjnych i promocyjnych organizatora.', true, false, false, 4),

@@ -40,7 +40,7 @@ To konto działa tylko w lokalnym mocku. Produkcja i staging wymagają `ADMIN_LO
 - `/zawody/:slug` — szczegóły wydarzenia.
 - `/zapisy/puchar-polski-bmx-freestyle-runda-1` — formularz zapisów dla wydarzenia testowego.
 - `/potwierdz?token=...` — publiczne potwierdzenie zgłoszenia z kodem QR do okazania przy check-inie.
-- `/regulamin` — miejsce na regulamin i dokumenty.
+- `/regulamin` — ogólny regulamin zawodów BMX Series.
 - `/faq` — podstawowe FAQ.
 
 ## Ścieżki Admina

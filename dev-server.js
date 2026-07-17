@@ -61,7 +61,7 @@ const mockCategories = [
 ];
 
 const mockConsents = [
-  { id: "seed-consent-rules", eventId: "seed-event", code: "rules_acceptance", label: "Akceptacja regulaminu", body: "Potwierdzam zapoznanie się z regulaminem zawodów BMX Freestyle Polska i akceptuję jego postanowienia.", required: true, guardianOnly: false, athleteAdultOnly: false, sortOrder: 1, active: true },
+  { id: "seed-consent-rules", eventId: "seed-event", code: "rules_acceptance", label: "Akceptacja regulaminu", body: "Akceptuję Regulamin zawodów.", required: true, guardianOnly: false, athleteAdultOnly: false, sortOrder: 1, active: true },
   { id: "seed-consent-health", eventId: "seed-event", code: "health_statement", label: "Oświadczenie o stanie zdrowia", body: "Oświadczam, że zawodnik nie ma przeciwwskazań zdrowotnych do udziału w zawodach BMX Freestyle.", required: true, guardianOnly: false, athleteAdultOnly: false, sortOrder: 2, active: true },
   { id: "seed-consent-gdpr", eventId: "seed-event", code: "gdpr", label: "Zgoda RODO", body: "Potwierdzam zapoznanie się z informacją o przetwarzaniu danych osobowych na potrzeby organizacji zawodów.", required: true, guardianOnly: false, athleteAdultOnly: false, sortOrder: 3, active: true },
   { id: "seed-consent-image", eventId: "seed-event", code: "image", label: "Zgoda na wizerunek", body: "Wyrażam zgodę na wykorzystanie wizerunku zawodnika w materiałach informacyjnych i promocyjnych organizatora.", required: true, guardianOnly: false, athleteAdultOnly: false, sortOrder: 4, active: true },

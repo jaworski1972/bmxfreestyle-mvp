@@ -63,7 +63,7 @@ const fallbackConsents = [
     id: "seed-consent-rules",
     code: "rules_acceptance",
     label: "Akceptacja regulaminu",
-    body: "Potwierdzam zapoznanie się z regulaminem zawodów BMX Freestyle Polska i akceptuję jego postanowienia.",
+    body: "Akceptuję Regulamin zawodów.",
     required: true,
     guardianOnly: false,
     athleteAdultOnly: false,
@@ -212,6 +212,13 @@ function preferredCategoryCode(categories) {
 
 function categoryLabel(code) {
   return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
+}
+
+function consentBodyHtml(consent) {
+  if (String(consent.code || "") === "rules_acceptance") {
+    return 'Akceptuję <a href="/regulamin" data-link>Regulamin zawodów</a>.';
+  }
+  return escapeHtml(consent.body || "");
 }
 
 function categoryByCode(categories, code) {
@@ -688,7 +695,7 @@ async function renderSignupPlaceholder(slug) {
                 />
                 <span>
                   <strong>${escapeHtml(consent.label)} ${consent.required ? "*" : ""}</strong>
-                  <small>${escapeHtml(consent.body)}</small>
+                  <small>${consentBodyHtml(consent)}</small>
                 </span>
               </label>
             `).join("") : '<div class="form-alert">Nie udało się pobrać zgód dla tego wydarzenia.</div>'}
@@ -1045,10 +1052,303 @@ async function renderConfirmationPlaceholder() {
 
 function renderRules() {
   app.innerHTML = `
-    <section class="placeholder-page">
-      <p class="eyebrow">Dokumenty</p>
-      <h1>Regulamin</h1>
-      <p>Regulamin zawodów, informacje RODO oraz dokumenty dla zawodnika i opiekuna będą publikowane przy wydarzeniu.</p>
+    <section class="page-hero compact-hero rules-hero">
+      <div class="section-heading">
+        <p class="eyebrow">Dokumenty</p>
+        <h1>Regulamin zawodów BMX Series</h1>
+        <p>Puchar Polski BMX Freestyle i otwarte konkurencje towarzyszące.</p>
+        <span class="status-pill">Wersja z dnia 17 lipca 2026 r.</span>
+      </div>
+    </section>
+
+    <section class="section section-tight rules-section">
+      <aside class="rules-toc" aria-label="Spis treści regulaminu">
+        <strong>Spis treści</strong>
+        <a href="#regulamin-ogolne">1. Postanowienia ogólne</a>
+        <a href="#regulamin-organizator">2. Organizator</a>
+        <a href="#regulamin-charakter">3. Charakter zawodów</a>
+        <a href="#regulamin-kategorie">4. Kategorie startowe</a>
+        <a href="#regulamin-uczestnictwo">5. Warunki uczestnictwa</a>
+        <a href="#regulamin-zgloszenia">7. Zgłoszenia</a>
+        <a href="#regulamin-niepelnoletni">8. Zawodnicy niepełnoletni</a>
+        <a href="#regulamin-protesty">16. Protesty</a>
+        <a href="#regulamin-koncowe">24. Postanowienia końcowe</a>
+      </aside>
+
+      <article class="rules-document">
+        <header>
+          <p class="eyebrow">Regulamin</p>
+          <h2>REGULAMIN ZAWODÓW BMX SERIES</h2>
+          <p>Puchar Polski BMX Freestyle i otwarte konkurencje towarzyszące.</p>
+        </header>
+
+        <section id="regulamin-ogolne">
+          <h3>1. Postanowienia ogólne</h3>
+          <ol>
+            <li>Regulamin określa zasady organizacji oraz uczestnictwa w zawodach BMX Freestyle organizowanych w formule BMX Series przez Fundację Sportów Miejskich, zwaną dalej Organizatorem.</li>
+            <li>Każde zawody są odrębnym wydarzeniem sportowym.</li>
+            <li>Regulamin nie ustanawia punktacji sezonowej ani klasyfikacji generalnej łączącej wyniki poszczególnych imprez.</li>
+            <li>Data, miejsce, harmonogram, limity uczestników, szczegółowy format sportowy, rodzaj nagród oraz pozostałe informacje dotyczące konkretnego wydarzenia są określane w komunikacie organizacyjnym publikowanym przez Organizatora.</li>
+            <li>Uczestnictwo w zawodach oznacza akceptację niniejszego Regulaminu, komunikatu organizacyjnego danego wydarzenia oraz zasad bezpieczeństwa obowiązujących na obiekcie.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-organizator">
+          <h3>2. Organizator</h3>
+          <ol>
+            <li>Organizatorem zawodów jest Fundacja Sportów Miejskich.</li>
+            <li>Organizator może realizować zawody we współpracy z Polskim Związkiem Kolarskim, jednostkami samorządu terytorialnego, zarządcami obiektów, klubami sportowymi, partnerami technicznymi, sponsorami oraz innymi podmiotami.</li>
+            <li>Dane kontaktowe Organizatora są publikowane na stronie internetowej: <a href="https://www.bmxseries.pl">https://www.bmxseries.pl</a>.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-charakter">
+          <h3>3. Charakter zawodów</h3>
+          <ol>
+            <li>Zawody obejmują kategorię PRO rozgrywaną jako Puchar Polski BMX Freestyle PZKol oraz otwarte konkurencje towarzyszące AMATOR i JUNIOR U15.</li>
+            <li>Kategoria PRO jest kategorią licencjonowaną.</li>
+            <li>Kategorie AMATOR i JUNIOR U15 są konkurencjami otwartymi i nie wymagają posiadania licencji sportowej.</li>
+            <li>Wyniki kategorii AMATOR i JUNIOR U15 nie stanowią wyników kategorii PRO i nie przyznają punktów do rankingów UCI ani innych oficjalnych klasyfikacji sportowych, chyba że komunikat organizacyjny stanowi inaczej.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-kategorie">
+          <h3>4. Kategorie startowe</h3>
+          <h4>4.1. PRO</h4>
+          <ol>
+            <li>PRO jest kategorią przeznaczoną dla zawodników posiadających ważny UCI ID lub numer licencji uprawniający do udziału w zawodach.</li>
+            <li>Kobiety i mężczyźni mogą uczestniczyć w tej samej sesji treningowej, kwalifikacyjnej lub finałowej, jeżeli pozwala na to format wydarzenia.</li>
+            <li>Dla kobiet prowadzona jest odrębna klasyfikacja wyników.</li>
+            <li>Organizator może dostosować sposób przeprowadzenia rywalizacji kobiet do liczby zgłoszonych zawodniczek, zachowując odrębną klasyfikację.</li>
+          </ol>
+          <h4>4.2. AMATOR</h4>
+          <ol>
+            <li>AMATOR jest otwartą konkurencją towarzyszącą przeznaczoną dla zawodników bez licencji, którzy w dniu zawodów ukończyli 15. rok życia.</li>
+            <li>Kobiety i mężczyźni mogą startować wspólnie.</li>
+            <li>Organizator może utworzyć odrębną klasyfikację kobiet, jeżeli liczba uczestniczek lub warunki organizacyjne uzasadniają jej utworzenie.</li>
+          </ol>
+          <h4>4.3. JUNIOR U15</h4>
+          <ol>
+            <li>JUNIOR U15 jest otwartą konkurencją towarzyszącą dla zawodników, którzy w dniu zawodów nie ukończyli 15. roku życia.</li>
+            <li>Dziewczęta i chłopcy mogą startować wspólnie.</li>
+            <li>Organizator może utworzyć odrębną klasyfikację dziewcząt, jeżeli liczba uczestniczek lub warunki organizacyjne uzasadniają jej utworzenie.</li>
+            <li>O zakwalifikowaniu zawodnika bez licencji do kategorii JUNIOR U15 albo AMATOR decydują data urodzenia podana w formularzu zgłoszeniowym oraz data rozpoczęcia zawodów.</li>
+            <li>Zawodnik, który kończy 15 lat dokładnie w dniu rozpoczęcia zawodów, zostaje przypisany do kategorii AMATOR.</li>
+            <li>System zapisów automatycznie przypisuje zawodnika bez licencji do właściwej kategorii. Zawodnik nie wybiera samodzielnie pomiędzy AMATOR i JUNIOR U15.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-uczestnictwo">
+          <h3>5. Warunki uczestnictwa</h3>
+          <ol>
+            <li>Warunkiem udziału w zawodach jest dokonanie prawidłowego zgłoszenia, podanie prawdziwych danych, zaakceptowanie wymaganych zgód, spełnienie kryteriów kategorii, otrzymanie statusu zaakceptowanego, dokonanie check-inu, posiadanie sprawnego roweru BMX i używanie kasku.</li>
+            <li>Samo wysłanie formularza zgłoszeniowego nie oznacza automatycznego dopuszczenia do udziału.</li>
+            <li>Organizator może ustanowić limit uczestników dla całych zawodów lub poszczególnych kategorii.</li>
+            <li>Udział w zawodach jest bezpłatny. Organizator nie pobiera wpisowego w kategoriach PRO, AMATOR ani JUNIOR U15.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>6. Licencja w kategorii PRO</h3>
+          <ol>
+            <li>Zawodnik zgłaszający się do kategorii PRO podaje w formularzu UCI ID / numer licencji.</li>
+            <li>Organizator ma prawo zweryfikować ważność licencji przed zaakceptowaniem zgłoszenia oraz podczas check-inu.</li>
+            <li>Brak ważnej licencji może skutkować niedopuszczeniem zawodnika do udziału w kategorii PRO.</li>
+            <li>Jeżeli zawodnik nie spełnia warunków kategorii PRO, Organizator może zaproponować udział w kategorii otwartej, o ile zawodnik spełnia jej kryteria, dostępne są wolne miejsca i zmiana nie narusza harmonogramu ani zasad sportowych wydarzenia.</li>
+            <li>Kategoria PRO jest rozgrywana zgodnie z właściwymi przepisami sportowymi PZKol i UCI dotyczącymi BMX Freestyle, niniejszym Regulaminem oraz komunikatem organizacyjnym wydarzenia.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-zgloszenia">
+          <h3>7. Zgłoszenia</h3>
+          <ol>
+            <li>Podstawową formą zgłoszenia są zapisy internetowe prowadzone przez stronę <a href="https://www.bmxseries.pl">https://www.bmxseries.pl</a>.</li>
+            <li>Organizator może zamknąć zapisy internetowe przed planowanym terminem po wyczerpaniu limitu miejsc.</li>
+            <li>Zapisy na miejscu mogą zostać uruchomione wyłącznie wtedy, gdy po zakończeniu lub w trakcie zapisów internetowych pozostają wolne miejsca.</li>
+            <li>Jeżeli limit miejsc zostanie wyczerpany przez zgłoszenia internetowe, Organizator nie prowadzi zapisów na miejscu.</li>
+            <li>Organizator może ustanowić listę rezerwową.</li>
+            <li>Zgłoszenie może otrzymać status: oczekuje na weryfikację, zaakceptowane, wymaga uzupełnienia, odrzucone albo lista rezerwowa.</li>
+            <li>Organizator może odmówić przyjęcia zgłoszenia z powodu wyczerpania limitu miejsc, niespełnienia kryteriów kategorii, podania niepełnych lub nieprawdziwych danych, braku wymaganych zgód, braku ważnej licencji w kategorii PRO albo wcześniejszych poważnych naruszeń zasad bezpieczeństwa.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-niepelnoletni">
+          <h3>8. Zawodnicy niepełnoletni</h3>
+          <ol>
+            <li>Zgłoszenie zawodnika niepełnoletniego wymaga podania danych rodzica lub opiekuna prawnego oraz zaakceptowania wymaganych zgód.</li>
+            <li>Każdy zawodnik niepełnoletni, niezależnie od kategorii, musi podczas check-inu dostarczyć podpisane pisemne oświadczenie rodzica lub opiekuna prawnego ze zgodą na udział w zawodach.</li>
+            <li>Brak pisemnego oświadczenia skutkuje niedopuszczeniem zawodnika do oficjalnych treningów oraz przejazdów konkursowych.</li>
+            <li>Rodzic lub opiekun prawny odpowiada za prawidłowość przekazanych danych oraz potwierdza, że zna charakter dyscypliny i akceptuje udział dziecka.</li>
+            <li>Organizator może wymagać obecności rodzica lub opiekuna prawnego podczas check-inu albo przedstawienia dodatkowego dokumentu potwierdzającego zgodę.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>9. Check-in i potwierdzenie zgłoszenia</h3>
+          <ol>
+            <li>Zawodnik zaakceptowany powinien zgłosić się do biura zawodów w terminie wskazanym w komunikacie organizacyjnym.</li>
+            <li>Podczas check-inu Organizator może zweryfikować tożsamość zawodnika, kategorię, licencję zawodnika PRO, wymagane zgody i oświadczenia, dane rodzica lub opiekuna oraz inne dokumenty wymagane do dopuszczenia do startu.</li>
+            <li>Kod QR lub link potwierdzenia służy do identyfikacji zgłoszenia w systemie.</li>
+            <li>Posiadanie kodu QR nie stanowi samodzielnej gwarancji dopuszczenia do udziału.</li>
+            <li>O dopuszczeniu decyduje aktualny status zgłoszenia oraz prawidłowe przejście check-inu.</li>
+            <li>Nieobecność podczas check-inu może skutkować skreśleniem z listy startowej i przekazaniem miejsca osobie z listy rezerwowej.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>10. Harmonogram i format zawodów</h3>
+          <ol>
+            <li>Szczegółowy harmonogram jest publikowany w komunikacie organizacyjnym danego wydarzenia.</li>
+            <li>Komunikat może określać godziny rejestracji i check-inu, treningi, kolejność kategorii, liczbę i długość przejazdów, zasady kwalifikacji i finałów, liczbę zawodników awansujących do finału oraz zasady rozstrzygania remisów.</li>
+            <li>Organizator może zmienić harmonogram lub format z uwagi na liczbę uczestników, warunki pogodowe, stan obiektu, opóźnienia, awarię techniczną, konieczność zapewnienia bezpieczeństwa lub inne nieprzewidziane okoliczności.</li>
+            <li>Zmiana formatu dokonana z przyczyn organizacyjnych lub bezpieczeństwa nie stanowi podstawy do roszczeń wobec Organizatora.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>11. Kolejność startowa</h3>
+          <ol>
+            <li>Kolejność startową ustala Organizator.</li>
+            <li>Kolejność może wynikać z losowania, kolejności zgłoszeń, ustawienia przez Organizatora, wyników kwalifikacji, rankingu lub innych zasad określonych w komunikacie organizacyjnym.</li>
+            <li>Zawodnik powinien być gotowy do startu w momencie wywołania.</li>
+            <li>Nieobecność zawodnika w momencie wywołania może skutkować utratą przejazdu, przesunięciem na koniec grupy albo skreśleniem z listy startowej.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>12. Sędziowanie</h3>
+          <ol>
+            <li>Przejazdy są oceniane przez wyznaczony zespół sędziowski.</li>
+            <li>Kategoria PRO jest oceniana zgodnie z właściwymi zasadami BMX Freestyle oraz formatem określonym w komunikacie organizacyjnym.</li>
+            <li>Kategorie AMATOR i JUNIOR U15 mogą być oceniane według uproszczonej formuły dostosowanej do poziomu uczestników i charakteru konkurencji.</li>
+            <li>Przy ocenie przejazdu mogą być brane pod uwagę trudność trików, jakość wykonania, wysokość i dynamika, wykorzystanie przeszkód, różnorodność, styl, płynność i ogólne wrażenie.</li>
+            <li>Decyzje sędziów dotyczące subiektywnej oceny sportowej przejazdu są ostateczne.</li>
+            <li>Korekcie mogą podlegać oczywiste błędy techniczne, rachunkowe, proceduralne albo błędy w publikacji wyników.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>13. Bezpieczeństwo i wyposażenie</h3>
+          <ol>
+            <li>Używanie kasku jest obowiązkowe podczas oficjalnych treningów oraz przejazdów konkursowych.</li>
+            <li>Organizator zaleca korzystanie z dodatkowych ochraniaczy odpowiednich do wieku, poziomu umiejętności i wykonywanych ewolucji.</li>
+            <li>Zawodnik odpowiada za sprawność techniczną roweru, dobór sprzętu, ocenę własnych umiejętności, wykonywanie ewolucji odpowiednich do poziomu oraz przestrzeganie zasad poruszania się po obiekcie.</li>
+            <li>Organizator, sędzia, osoba odpowiedzialna za bezpieczeństwo lub obsługa techniczna mogą nie dopuścić zawodnika do jazdy, przerwać przejazd albo nakazać opuszczenie obiektu, jeżeli sprzęt, stan zdrowia lub zachowanie zawodnika stwarzają zagrożenie.</li>
+            <li>Zabronione jest korzystanie z obiektu w sposób sprzeczny z poleceniami Organizatora lub zasadami bezpieczeństwa.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>14. Stan zdrowia i ryzyko sportowe</h3>
+          <ol>
+            <li>BMX Freestyle jest dyscypliną sportową wiążącą się z ryzykiem upadków, urazów oraz kontuzji.</li>
+            <li>Zawodnik, a w przypadku zawodnika niepełnoletniego jego rodzic lub opiekun prawny, potwierdza, że stan zdrowia zawodnika pozwala na udział w zawodach.</li>
+            <li>Zawodnik powinien niezwłocznie poinformować Organizatora lub zabezpieczenie medyczne o urazie albo pogorszeniu samopoczucia.</li>
+            <li>W przypadku podejrzenia urazu Organizator lub zabezpieczenie medyczne może nie dopuścić zawodnika do startu albo dalszego udziału.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>15. Zachowanie uczestników</h3>
+          <ol>
+            <li>Uczestnicy powinni zachowywać się zgodnie z zasadami sportowej rywalizacji, wzajemnego szacunku i bezpieczeństwa.</li>
+            <li>Zabronione jest agresywne, obraźliwe lub dyskryminujące zachowanie, celowe stwarzanie zagrożenia, zakłócanie przejazdu innego zawodnika, niestosowanie się do poleceń, udział pod wpływem alkoholu lub środków odurzających, niszczenie infrastruktury oraz manipulowanie wynikami lub danymi zgłoszeniowymi.</li>
+            <li>Naruszenie zasad może skutkować ostrzeżeniem, utratą przejazdu, obniżeniem wyniku, dyskwalifikacją, usunięciem z terenu wydarzenia albo odmową przyjęcia zgłoszenia na kolejne wydarzenia.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-protesty">
+          <h3>16. Protesty</h3>
+          <ol>
+            <li>Oficjalne protesty są składane wyłącznie w formie pisemnej, pocztą elektroniczną.</li>
+            <li>Adres e-mail właściwy do składania protestów oraz termin ich składania są wskazywane w komunikacie organizacyjnym danego wydarzenia.</li>
+            <li>Protest powinien zawierać imię i nazwisko osoby składającej, dane zawodnika, kategorię startową, opis zdarzenia albo decyzji, uzasadnienie oraz dostępne materiały potwierdzające wskazane okoliczności.</li>
+            <li>W imieniu zawodnika niepełnoletniego protest składa rodzic lub opiekun prawny.</li>
+            <li>Protest może dotyczyć naruszenia Regulaminu, błędu identyfikacji zawodnika, błędu proceduralnego, rachunkowego albo błędu w publikacji wyników.</li>
+            <li>Protest nie może dotyczyć subiektywnej oceny sportowej przejazdu dokonanej przez sędziów.</li>
+            <li>Protest złożony po terminie, bez wymaganych danych lub w innej formie może pozostać bez rozpoznania.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>17. Wyniki i klasyfikacje</h3>
+          <ol>
+            <li>Dla każdej imprezy prowadzone są oddzielne wyniki.</li>
+            <li>Regulamin nie ustanawia wspólnej punktacji ani klasyfikacji generalnej łączącej poszczególne wydarzenia.</li>
+            <li>Wyniki są publikowane przez Organizatora na stronie internetowej albo w innym oficjalnym kanale komunikacji.</li>
+            <li>W kategorii PRO wyniki kobiet i mężczyzn są klasyfikowane oddzielnie.</li>
+            <li>W kategoriach AMATOR i JUNIOR U15 Organizator może prowadzić wspólną klasyfikację albo utworzyć odrębną klasyfikację żeńską, zależnie od liczby uczestniczek i przyjętego formatu.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>18. Nagrody</h3>
+          <ol>
+            <li>Informacje o nagrodach są publikowane w komunikacie organizacyjnym danego wydarzenia.</li>
+            <li>Organizator może przyznać puchary, medale, dyplomy, nagrody rzeczowe, nagrody finansowe lub wyróżnienia dodatkowe.</li>
+            <li>Rodzaj i wartość nagród mogą różnić się pomiędzy kategoriami oraz wydarzeniami.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>19. Wizerunek</h3>
+          <ol>
+            <li>Podczas zawodów mogą być wykonywane zdjęcia, nagrania filmowe, transmisje oraz relacje medialne.</li>
+            <li>Zasady utrwalania i wykorzystywania wizerunku uczestnika wynikają z treści odpowiedniej zgody udzielanej w procesie rejestracji.</li>
+            <li>W przypadku osoby niepełnoletniej wymagane zgody składa rodzic lub opiekun prawny.</li>
+            <li>Niniejszy Regulamin nie rozszerza zakresu zgody na wykorzystanie wizerunku ponad treść zgody zaakceptowanej przez uczestnika lub jego opiekuna.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>20. Dane osobowe</h3>
+          <ol>
+            <li>Dane osobowe uczestników są przetwarzane w celu przyjmowania i weryfikacji zgłoszeń, organizacji zawodów, tworzenia list startowych i wyników, prowadzenia check-inu, komunikacji organizacyjnej, zapewnienia bezpieczeństwa, rozpatrywania protestów i realizacji obowiązków prawnych Organizatora.</li>
+            <li>Szczegółowe zasady przetwarzania danych osobowych są określone w klauzuli informacyjnej dostępnej w formularzu zgłoszeniowym i na stronie internetowej.</li>
+            <li>Kod QR stosowany podczas check-inu zawiera link do strony potwierdzenia zgłoszenia i nie powinien zawierać bezpośrednio danych osobowych zawodnika.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>21. Komunikacja e-mail i SMS</h3>
+          <ol>
+            <li>Organizator może przesyłać informacje organizacyjne na adres e-mail lub numer telefonu podany podczas rejestracji.</li>
+            <li>Wiadomości mogą dotyczyć statusu zgłoszenia, potwierdzenia udziału, check-inu, harmonogramu, zmian organizacyjnych, bezpieczeństwa, odwołania, przerwania lub przesunięcia wydarzenia.</li>
+            <li>W przypadku zawodnika niepełnoletniego komunikacja może być kierowana do rodzica lub opiekuna prawnego.</li>
+            <li>Brak doręczenia wiadomości e-mail albo SMS nie zwalnia uczestnika z obowiązku sprawdzania aktualnych komunikatów Organizatora.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>22. Zmiana, przerwanie lub odwołanie zawodów</h3>
+          <ol>
+            <li>Organizator może zmienić harmonogram, skrócić, przerwać, przełożyć lub odwołać zawody z ważnych powodów, w szczególności z powodu warunków pogodowych, zagrożenia bezpieczeństwa, stanu obiektu, awarii technicznej, decyzji zarządcy obiektu, decyzji służb, siły wyższej lub innych okoliczności uniemożliwiających bezpieczne przeprowadzenie wydarzenia.</li>
+            <li>Organizator przekazuje informację o zmianach możliwie szybko za pośrednictwem dostępnych kanałów komunikacji.</li>
+            <li>Przy podejmowaniu decyzji pierwszeństwo ma bezpieczeństwo zawodników, obsługi i publiczności.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>23. Odpowiedzialność</h3>
+          <ol>
+            <li>Organizator odpowiada na zasadach wynikających z obowiązujących przepisów prawa.</li>
+            <li>Zawodnik ponosi odpowiedzialność za korzystanie ze sprawnego sprzętu, wykonywanie ewolucji dostosowanych do własnych umiejętności oraz przestrzeganie zasad bezpieczeństwa.</li>
+            <li>Organizator nie odpowiada za szkody wynikające wyłącznie z naruszenia Regulaminu przez uczestnika, używania niesprawnego lub niewłaściwego sprzętu, wykonywania ewolucji niedostosowanych do umiejętności, zignorowania poleceń albo działania osoby trzeciej, chyba że odpowiedzialność Organizatora wynika z bezwzględnie obowiązujących przepisów prawa.</li>
+            <li>Organizator nie odpowiada za rzeczy pozostawione bez nadzoru, zagubione albo skradzione na terenie wydarzenia, z zastrzeżeniem obowiązujących przepisów prawa.</li>
+          </ol>
+        </section>
+
+        <section id="regulamin-koncowe">
+          <h3>24. Postanowienia końcowe</h3>
+          <ol>
+            <li>W sprawach nieuregulowanych w Regulaminie decyzję podejmuje Organizator, z uwzględnieniem obowiązujących przepisów prawa, zasad bezpieczeństwa oraz właściwych przepisów sportowych PZKol i UCI w odniesieniu do kategorii PRO.</li>
+            <li>Organizator może zmienić Regulamin z ważnych przyczyn, w szczególności z powodu zmiany przepisów prawa, przepisów sportowych, wymogów PZKol, zarządcy obiektu lub służb, potrzeby poprawy bezpieczeństwa albo zmian technicznych w systemie zapisów.</li>
+            <li>Aktualna wersja Regulaminu jest publikowana pod adresem <a href="/regulamin" data-link>https://www.bmxseries.pl/regulamin</a>.</li>
+            <li>Zmiany Regulaminu obowiązują od momentu ich opublikowania, chyba że Organizator wskaże późniejszy termin.</li>
+            <li>W przypadku istotnej zmiany dotyczącej już zaakceptowanych zgłoszeń Organizator powinien poinformować uczestników za pośrednictwem dostępnych kanałów komunikacji.</li>
+          </ol>
+        </section>
+      </article>
     </section>
   `;
 }
