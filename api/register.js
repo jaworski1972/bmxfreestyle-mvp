@@ -32,18 +32,6 @@ function ageAtDate(birthDateValue, targetDateValue) {
   return age;
 }
 
-function entryTypeFromBody(body) {
-  const entryType = cleanText(body.entryType, 40).toLowerCase();
-  const categoryCode = cleanText(body.categoryCode, 40).toUpperCase();
-  if (entryType === "pro" || categoryCode === "PRO") return "pro";
-  return "open";
-}
-
-function assignedCategoryCodeForEntry(entryType, age) {
-  if (entryType === "pro") return "PRO";
-  return age < 15 ? "JUNIOR" : "AMATOR";
-}
-
 function normalizeConsentInput(consents) {
   if (Array.isArray(consents)) return consents;
   if (!consents || typeof consents !== "object") return [];
@@ -109,16 +97,39 @@ async function fetchEvent(supabase, body) {
   return data || null;
 }
 
-async function fetchCategoryByCode(supabase, eventId, categoryCode) {
-  const { data, error } = await supabase
+async function fetchCategory(supabase, eventId, body) {
+  const categoryId = cleanText(body.categoryId, 80);
+  const categoryCode = cleanText(body.categoryCode, 40).toUpperCase();
+  let query = supabase
     .from("event_categories")
     .select("*")
     .eq("event_id", eventId)
-    .eq("is_active", true)
-    .eq("code", categoryCode)
-    .maybeSingle();
+    .eq("is_active", true);
+
+  if (categoryId) query = query.eq("id", categoryId);
+  else if (categoryCode) query = query.eq("code", categoryCode);
+  else return null;
+
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return data || null;
+}
+
+function categoryAgeValidationError(category, age) {
+  const code = String(category?.code || "").toUpperCase();
+  if (code === "JUNIOR" && age >= 15) {
+    return {
+      code: "junior_age_mismatch",
+      error: "Kategoria JUNIOR U15 jest przeznaczona dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat. Wybierz kategorię AMATOR.",
+    };
+  }
+  if (code === "AMATOR" && age < 15) {
+    return {
+      code: "amator_age_mismatch",
+      error: "Zawodnik poniżej 15. roku życia powinien zostać zgłoszony do kategorii JUNIOR U15.",
+    };
+  }
+  return null;
 }
 
 async function fetchConsents(supabase, eventId) {
@@ -168,6 +179,7 @@ module.exports = async function handler(request, response) {
     const missing = required.filter((key) => !requiredString(body, key));
 
     if (!requiredString(body, "eventId") && !requiredString(body, "eventSlug")) missing.push("eventId");
+    if (!requiredString(body, "categoryId") && !requiredString(body, "categoryCode")) missing.push("categoryId");
     if (missing.length) {
       json(response, 400, {
         ok: false,
@@ -225,22 +237,24 @@ module.exports = async function handler(request, response) {
       return;
     }
 
-    const entryType = entryTypeFromBody(body);
-    const assignedCategoryCode = assignedCategoryCodeForEntry(entryType, eventAge);
-    const category = await fetchCategoryByCode(supabase, event.id, assignedCategoryCode);
+    const category = await fetchCategory(supabase, event.id, body);
     if (!category) {
       json(response, 400, {
         ok: false,
         code: "category_not_available",
-        error: "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.",
-        assignedCategoryCode,
+        error: "Nie znaleziono wybranej kategorii.",
       });
       return;
     }
 
     const minor = eventAge < 18;
+    const categoryAgeError = categoryAgeValidationError(category, eventAge);
+    if (categoryAgeError) {
+      json(response, 400, { ok: false, ...categoryAgeError });
+      return;
+    }
 
-    if (entryType === "pro" && !requiredString(body, "licenseNumber")) {
+    if ((category.requires_license || String(category.code || "").toUpperCase() === "PRO") && !requiredString(body, "licenseNumber")) {
       json(response, 400, {
         ok: false,
         code: "license_required",

@@ -41,7 +41,7 @@ const fallbackCategories = [
     eventId: "seed-event",
     code: "AMATOR",
     name: "AMATOR",
-    description: "Otwarta kategoria dla riderów bez licencji.",
+    description: "Otwarta kategoria dla riderów od 15. roku życia.",
     ageMin: 16,
     ageMax: null,
     requiresLicense: false,
@@ -129,11 +129,11 @@ const faqItems = [
   {
     id: "auto-category",
     featured: true,
-    question: "Czy zawodnik sam wybiera kategorię AMATOR albo JUNIOR?",
+    question: "Czy zawodnik sam wybiera kategorię AMATOR albo JUNIOR U15?",
     answer: [
-      "Nie. Zawodnik bez licencji wybiera ścieżkę Start bez licencji, a system automatycznie przypisuje kategorię na podstawie daty urodzenia i daty rozpoczęcia zawodów.",
-      "Zawodnik, który w dniu rozpoczęcia zawodów nie ukończył 15 lat, zostaje przypisany do kategorii JUNIOR U15. Zawodnik, który ma 15 lat lub więcej, trafia do kategorii AMATOR.",
-      "Zawodnik, który kończy 15 lat dokładnie w dniu rozpoczęcia zawodów, zostaje przypisany do kategorii AMATOR.",
+      "Tak. Podczas rejestracji zawodnik wybiera kategorię AMATOR albo JUNIOR U15.",
+      "System sprawdza zgodność wyboru z datą urodzenia i datą rozpoczęcia zawodów: JUNIOR U15 jest przeznaczony dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat, a AMATOR dla zawodników, którzy w dniu zawodów mają co najmniej 15 lat.",
+      "Zawodnik, który kończy 15 lat dokładnie w dniu zawodów, powinien wybrać kategorię AMATOR.",
     ],
   },
   {
@@ -214,7 +214,7 @@ const faqItems = [
     question: "Czy zawodnik niepełnoletni może startować w PRO?",
     answer: [
       "Tak, jeśli posiada ważny UCI ID lub numer licencji, spełnia wymagania kategorii PRO i dostarczy wymagane zgody rodzica lub opiekuna.",
-      "Wiek poniżej 15 lat nie oznacza automatycznego przypisania do JUNIOR U15, jeśli zawodnik świadomie zgłasza się do licencjonowanej kategorii PRO.",
+      "Granica wieku AMATOR/JUNIOR U15 nie jest stosowana do wybranej kategorii PRO.",
     ],
   },
   {
@@ -420,10 +420,6 @@ function categoryByCode(categories, code) {
   return categories.find((category) => String(category.code || "").toUpperCase() === normalized) || null;
 }
 
-function assignedOpenCategoryCode(age) {
-  return Number.isFinite(age) && age < 15 ? "JUNIOR" : "AMATOR";
-}
-
 async function fetchJson(url, fallback) {
   try {
     const response = await fetch(url);
@@ -466,8 +462,8 @@ async function loadConsents(eventId) {
 function categoryCards() {
   const descriptions = {
     PRO: "Dla zawodników startujących z UCI ID / numerem licencji.",
-    AMATOR: "Dla osób bez licencji, które chcą wystartować w zawodach.",
-    JUNIOR: "Dla młodszych zawodników. W przypadku osób niepełnoletnich wymagane są dane opiekuna.",
+    AMATOR: "Dla zawodników, którzy w dniu zawodów mają co najmniej 15 lat.",
+    JUNIOR: "Dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat.",
   };
 
   return fallbackCategories.map((category) => `
@@ -475,7 +471,7 @@ function categoryCards() {
       <span class="card-kicker">${category.requiresLicense ? "Licencja" : "Open"}</span>
       <strong>${categoryLabel(category.code)}</strong>
       <p>${descriptions[category.code] || category.description}</p>
-      ${category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Bez licencji</span>'}
+      ${category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Walidacja wieku</span>'}
     </article>
   `).join("");
 }
@@ -528,8 +524,8 @@ function homepageFlowSection() {
       </div>
       <div class="steps">
         <article class="step-card"><span>1</span><h3>Wybierz zawody</h3><p>Publiczna lista aktywnych wydarzeń pod główną domeną.</p></article>
-        <article class="step-card"><span>2</span><h3>Wybierz ścieżkę</h3><p>PRO z licencją albo start bez licencji.</p></article>
-        <article class="step-card"><span>3</span><h3>Wypełnij formularz</h3><p>AMATOR albo JUNIOR U15 przypiszemy na podstawie daty urodzenia.</p></article>
+        <article class="step-card"><span>2</span><h3>Wybierz kategorię</h3><p>PRO, AMATOR albo JUNIOR U15.</p></article>
+        <article class="step-card"><span>3</span><h3>Wypełnij formularz</h3><p>System sprawdzi zgodność kategorii z datą urodzenia.</p></article>
         <article class="step-card"><span>4</span><h3>Poczekaj na weryfikację</h3><p>Organizator potwierdzi przyjęcie lub poprosi o uzupełnienie danych.</p></article>
       </div>
     </section>
@@ -542,32 +538,35 @@ function homepageCategoriesSection() {
       <div class="section-heading">
         <p class="eyebrow">Kategorie startowe</p>
         <h2>PRO, AMATOR, JUNIOR U15</h2>
-        <p>PRO pozostaje ścieżką licencyjną. Zawodnicy bez licencji trafiają do AMATOR albo JUNIOR U15 według wieku w dniu zawodów.</p>
+        <p>Zawodnik wybiera kategorię podczas rejestracji. System sprawdza zgodność wybranej kategorii z datą urodzenia i datą zawodów.</p>
       </div>
       <div class="category-grid">${categoryCards()}</div>
     </section>
   `;
 }
 
-function fastSignupEntryTiles(categories) {
-  const hasPro = Boolean(categoryByCode(categories, "PRO"));
-  const hasOpen = Boolean(categoryByCode(categories, "AMATOR") || categoryByCode(categories, "JUNIOR"));
-  return `
-    <label class="fast-category-tile">
-      <input type="radio" name="fastEntryType" value="pro" ${hasPro ? "" : "disabled"} />
-      <span>
-        <strong>Startuję w kategorii PRO</strong>
-        <small>Dla zawodników z ważnym UCI ID / numerem licencji.</small>
-      </span>
-    </label>
-    <label class="fast-category-tile">
-      <input type="radio" name="fastEntryType" value="open" ${hasOpen ? "checked" : "disabled"} />
-      <span>
-        <strong>Startuję bez licencji</strong>
-        <small>System przypisze kategorię AMATOR albo JUNIOR na podstawie daty urodzenia.</small>
-      </span>
-    </label>
-  `;
+function categoryShortDescription(code) {
+  const descriptions = {
+    PRO: "Dla zawodników z UCI ID / numerem licencji.",
+    AMATOR: "Dla zawodników od 15. roku życia.",
+    JUNIOR: "Dla młodszych zawodników.",
+  };
+  return descriptions[String(code || "").toUpperCase()] || "Wybierz tę kategorię, jeśli jest właściwa dla zawodnika.";
+}
+
+function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCode(categories)) {
+  return categories.map((category) => {
+    const code = String(category.code || "").toUpperCase();
+    return `
+      <label class="fast-category-tile">
+        <input type="radio" name="fastCategory" value="${escapeHtml(code)}" ${code === selectedCode ? "checked" : ""} ${category.isActive === false || category.is_active === false ? "disabled" : ""} />
+        <span>
+          <strong>${escapeHtml(categoryLabel(code))}</strong>
+          <small>${escapeHtml(categoryShortDescription(code))}</small>
+        </span>
+      </label>
+    `;
+  }).join("");
 }
 
 function fastSignupSection(events, selectedEvent, categories) {
@@ -578,7 +577,7 @@ function fastSignupSection(events, selectedEvent, categories) {
         <div class="fast-signup-header">
           <p class="eyebrow">Szybki zapis</p>
           <h2>Zapisz się na zawody</h2>
-          <p>Wybierz zawody i ścieżkę startu, a następnie przejdź do formularza zgłoszeniowego.</p>
+          <p>Wybierz zawody i kategorię, a następnie przejdź do formularza zgłoszeniowego.</p>
           <small>Zgłoszenie trafia do weryfikacji organizatora. Wysłanie formularza nie oznacza automatycznej akceptacji.</small>
         </div>
         <div class="fast-signup-flow">
@@ -595,15 +594,15 @@ function fastSignupSection(events, selectedEvent, categories) {
             <a class="fast-calendar-link" href="/zawody" data-link>Zobacz wszystkie rundy w kalendarzu</a>
           </div>
           <div class="fast-signup-step fast-category-step">
-            <p class="fast-step-label">02 Wybierz ścieżkę</p>
+            <p class="fast-step-label">02 Wybierz kategorię</p>
             <div class="fast-category-grid" id="fastCategoryGrid">
-              ${fastSignupEntryTiles(categories)}
+              ${fastSignupCategoryTiles(categories)}
             </div>
           </div>
           <div class="fast-signup-step fast-submit-step">
             <p class="fast-step-label">03 Przejdź dalej</p>
             <button class="fast-submit-btn" id="fastSignupButton" type="button" ${closedReason ? "disabled" : ""}>Rozpocznij zapis</button>
-            <p class="fast-signup-message" id="fastSignupMessage">${escapeHtml(closedReason || "Przejdziesz do formularza z wybraną ścieżką startu.")}</p>
+            <p class="fast-signup-message" id="fastSignupMessage">${escapeHtml(closedReason || "Przejdziesz do formularza z wybraną kategorią.")}</p>
           </div>
         </div>
       </div>
@@ -643,31 +642,31 @@ function setupFastSignup({ events, initialCategories }) {
   let selectedEvent = events.find((event) => event.slug === eventSelect.value) || events[0] || fallbackEvent;
   let selectedCategories = initialCategories.length ? initialCategories : fallbackCategories;
 
-  function selectedEntryType() {
-    return section.querySelector('input[name="fastEntryType"]:checked')?.value || "open";
+  function selectedCategoryCode() {
+    return section.querySelector('input[name="fastCategory"]:checked')?.value || preferredCategoryCode(selectedCategories);
   }
 
   function updateSubmitState() {
     const closedReason = registrationClosedReason(selectedEvent);
-    const hasEntry = Boolean(categoryByCode(selectedCategories, "PRO") || categoryByCode(selectedCategories, "AMATOR") || categoryByCode(selectedCategories, "JUNIOR"));
-    submitButton.disabled = Boolean(closedReason) || !hasEntry;
-    message.textContent = closedReason || (hasEntry ? "Przejdziesz do formularza z wybraną ścieżką startu." : "Brak aktywnych kategorii dla tego wydarzenia.");
+    const hasCategory = selectedCategories.length > 0;
+    submitButton.disabled = Boolean(closedReason) || !hasCategory;
+    message.textContent = closedReason || (hasCategory ? "Przejdziesz do formularza z wybraną kategorią." : "Brak aktywnych kategorii dla tego wydarzenia.");
     statusElement.textContent = statusLabel(selectedEvent.status);
     statusElement.className = `fast-status ${statusClass(selectedEvent.status)}`;
   }
 
   async function updateCategoriesForEvent() {
     selectedEvent = events.find((event) => event.slug === eventSelect.value) || selectedEvent;
-    categoryGrid.innerHTML = '<p class="fast-signup-message">Ładuję ścieżki startu...</p>';
+    categoryGrid.innerHTML = '<p class="fast-signup-message">Ładuję kategorie...</p>';
     selectedCategories = await loadCategories(selectedEvent.id);
-    categoryGrid.innerHTML = fastSignupEntryTiles(selectedCategories);
+    categoryGrid.innerHTML = fastSignupCategoryTiles(selectedCategories);
     updateSubmitState();
   }
 
   eventSelect.addEventListener("change", updateCategoriesForEvent);
   submitButton.addEventListener("click", () => {
     if (submitButton.disabled) return;
-    const target = `/zapisy/${selectedEvent.slug}?entryType=${encodeURIComponent(selectedEntryType())}`;
+    const target = `/zapisy/${selectedEvent.slug}?category=${encodeURIComponent(selectedCategoryCode())}`;
     window.history.pushState({}, "", target);
     router();
   });
@@ -739,10 +738,9 @@ async function renderSignupPlaceholder(slug) {
   const closedReason = registrationClosedReason(event);
   const formDisabled = Boolean(closedReason) || categories.length === 0;
   const params = new URLSearchParams(window.location.search);
-  const entryTypeParam = String(params.get("entryType") || "").trim().toLowerCase();
   const categoryParam = params.get("category");
   const preselectedCategoryCode = String(categoryParam || "").trim().toUpperCase();
-  const initialEntryType = entryTypeParam === "pro" || preselectedCategoryCode === "PRO" ? "pro" : "open";
+  const selectedCategory = categoryByCode(categories, preselectedCategoryCode) || categories[0] || null;
   const statusMessage = closedReason
     ? closedReason
     : categories.length === 0
@@ -770,40 +768,32 @@ async function renderSignupPlaceholder(slug) {
         <section class="form-section">
           <div>
             <p class="eyebrow">Krok 1</p>
-            <h2>Wybierz ścieżkę startu</h2>
-            <p>Jeśli startujesz bez licencji, system przypisze AMATOR albo JUNIOR U15 po wpisaniu daty urodzenia.</p>
+            <h2>Wybierz kategorię</h2>
+            <p>Wybierz kategorię sportową. System sprawdzi zgodność wyboru z datą urodzenia i datą rozpoczęcia wydarzenia.</p>
           </div>
-          <div class="category-choice-grid entry-choice-grid">
-            <label class="category-choice">
-              <input
-                type="radio"
-                name="entryType"
-                value="pro"
-                ${initialEntryType === "pro" ? "checked" : ""}
-                ${formDisabled || !categoryByCode(categories, "PRO") ? "disabled" : ""}
-              />
-              <span>
-                <strong>PRO — mam licencję</strong>
-                <small>Dla zawodników z UCI ID / numerem licencji.</small>
-                <em>Licencja wymagana</em>
-              </span>
-            </label>
-            <label class="category-choice">
-              <input
-                type="radio"
-                name="entryType"
-                value="open"
-                ${initialEntryType !== "pro" ? "checked" : ""}
-                ${formDisabled || (!categoryByCode(categories, "AMATOR") && !categoryByCode(categories, "JUNIOR")) ? "disabled" : ""}
-              />
-              <span>
-                <strong>Start bez licencji</strong>
-                <small>AMATOR albo JUNIOR U15 zostanie przypisany automatycznie na podstawie daty urodzenia.</small>
-                <em>Bez licencji</em>
-              </span>
-            </label>
+          <div class="category-choice-grid">
+            ${categories.map((category) => {
+              const code = String(category.code || "").toUpperCase();
+              return `
+                <label class="category-choice">
+                  <input
+                    type="radio"
+                    name="categoryId"
+                    value="${escapeHtml(category.id)}"
+                    data-code="${escapeHtml(code)}"
+                    data-requires-license="${isLicenseRequired(category) ? "true" : "false"}"
+                    ${selectedCategory?.id === category.id ? "checked" : ""}
+                    ${formDisabled || category.isActive === false || category.is_active === false ? "disabled" : ""}
+                  />
+                  <span>
+                    <strong>${escapeHtml(categoryLabel(code))}</strong>
+                    <small>${escapeHtml(categoryShortDescription(code))}</small>
+                    <em>${isLicenseRequired(category) ? "Licencja wymagana" : "Walidacja wieku"}</em>
+                  </span>
+                </label>
+              `;
+            }).join("")}
           </div>
-          <p class="inline-status" id="assignedCategoryStatus"></p>
         </section>
 
         <section class="form-section">
@@ -928,25 +918,25 @@ function calculateAge(birthDateValue, targetDate) {
   return age;
 }
 
-function selectedEntryType(form) {
-  return form.querySelector('input[name="entryType"]:checked')?.value || "open";
-}
-
-function selectedCategoryForEntry(form, categories, event) {
-  const entryType = selectedEntryType(form);
-  if (entryType === "pro") return categoryByCode(categories, "PRO");
-  const age = calculateAge(form.elements.birthDate.value, eventStartDate(event));
-  if (!Number.isFinite(age)) return null;
-  return categoryByCode(categories, assignedOpenCategoryCode(age));
+function selectedCategory(form, categories) {
+  const selectedId = form.querySelector('input[name="categoryId"]:checked')?.value || "";
+  return categories.find((category) => String(category.id) === String(selectedId)) || null;
 }
 
 function isLicenseRequired(category) {
   return Boolean(category?.requiresLicense || category?.requires_license);
 }
 
-function categoryAgeMax(category, event) {
-  const value = category?.ageMax ?? category?.age_max ?? event.settings?.juniorMaxAge;
-  return Number.isFinite(Number(value)) ? Number(value) : null;
+function categoryAgeValidationMessage(category, age) {
+  if (!category || !Number.isFinite(age)) return "";
+  const code = String(category.code || "").toUpperCase();
+  if (code === "JUNIOR" && age >= 15) {
+    return "Kategoria JUNIOR U15 jest przeznaczona dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat. Wybierz kategorię AMATOR.";
+  }
+  if (code === "AMATOR" && age < 15) {
+    return "Zawodnik poniżej 15. roku życia powinien zostać zgłoszony do kategorii JUNIOR U15.";
+  }
+  return "";
 }
 
 function relevantConsentElement(element, minor) {
@@ -971,7 +961,6 @@ function setMessage(element, message, type = "info") {
 function setupRegistrationForm({ event, categories, consents }) {
   const form = document.querySelector("#registrationForm");
   const ageStatus = document.querySelector("#ageStatus");
-  const assignedCategoryStatus = document.querySelector("#assignedCategoryStatus");
   const licenseSection = document.querySelector("#licenseSection");
   const guardianSection = document.querySelector("#guardianSection");
   const consentItems = [...document.querySelectorAll(".consent-item")];
@@ -980,16 +969,16 @@ function setupRegistrationForm({ event, categories, consents }) {
   const submitButton = form.querySelector(".submit-btn");
 
   function formState() {
-    const entryType = selectedEntryType(form);
     const age = calculateAge(form.elements.birthDate.value, eventStartDate(event));
-    const category = selectedCategoryForEntry(form, categories, event);
+    const category = selectedCategory(form, categories);
+    const categoryError = categoryAgeValidationMessage(category, age);
     const minor = Number.isFinite(age) && age < 18;
-    return { age, category, entryType, minor };
+    return { age, category, categoryError, minor };
   }
 
   function updateDynamicState() {
     const state = formState();
-    const needsLicense = state.entryType === "pro";
+    const needsLicense = isLicenseRequired(state.category);
 
     licenseSection.hidden = !needsLicense;
     setRequired([
@@ -1013,8 +1002,11 @@ function setupRegistrationForm({ event, categories, consents }) {
     });
 
     if (state.age === null) {
-      ageStatus.textContent = "Podaj datę urodzenia, aby sprawdzić wymagania opiekuna.";
+      ageStatus.textContent = "Podaj datę urodzenia, aby sprawdzić wymagania kategorii i opiekuna.";
       ageStatus.dataset.type = "info";
+    } else if (state.categoryError) {
+      ageStatus.textContent = state.categoryError;
+      ageStatus.dataset.type = "error";
     } else if (state.minor) {
       ageStatus.textContent = `Zawodnik ma ${state.age} lat w dniu startu. Dane opiekuna i zgody opiekuna są wymagane.`;
       ageStatus.dataset.type = "warning";
@@ -1023,25 +1015,10 @@ function setupRegistrationForm({ event, categories, consents }) {
       ageStatus.dataset.type = "success";
     }
 
-    if (state.entryType === "pro") {
-      assignedCategoryStatus.textContent = "Wybrano kategorię: PRO. UCI ID / numer licencji jest wymagany.";
-      assignedCategoryStatus.dataset.type = "warning";
-    } else if (state.age === null) {
-      assignedCategoryStatus.textContent = "Po wpisaniu daty urodzenia przypiszemy kategorię AMATOR albo JUNIOR U15.";
-      assignedCategoryStatus.dataset.type = "info";
-    } else if (state.category) {
-      assignedCategoryStatus.textContent = `Na podstawie daty urodzenia przypisano kategorię: ${categoryLabel(state.category.code)}`;
-      assignedCategoryStatus.dataset.type = "success";
-    } else {
-      assignedCategoryStatus.textContent = "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.";
-      assignedCategoryStatus.dataset.type = "error";
-    }
-
     const fullName = [form.elements.firstName.value, form.elements.lastName.value].filter(Boolean).join(" ") || "Nie podano";
     summary.innerHTML = `
       <p><strong>Wydarzenie:</strong> ${escapeHtml(event.name)}</p>
-      <p><strong>Ścieżka:</strong> ${state.entryType === "pro" ? "PRO" : "Start bez licencji"}</p>
-      <p><strong>Kategoria:</strong> ${escapeHtml(categoryLabel(state.category?.code) || "Do ustalenia po dacie urodzenia")}</p>
+      <p><strong>Kategoria:</strong> ${escapeHtml(categoryLabel(state.category?.code) || "Nie wybrano")}</p>
       <p><strong>Zawodnik:</strong> ${escapeHtml(fullName)}</p>
       <p><strong>Wiek w dniu startu:</strong> ${state.age === null ? "Podaj datę urodzenia" : state.age}</p>
       <p><strong>Opiekun:</strong> ${state.minor ? "wymagany" : "niewymagany"}</p>
@@ -1051,10 +1028,10 @@ function setupRegistrationForm({ event, categories, consents }) {
 
   function validateForm() {
     const state = formState();
-    if (!state.entryType) return "Wybierz ścieżkę startu.";
+    if (!state.category) return "Wybierz kategorię startową.";
     if (state.age === null) return "Podaj poprawną datę urodzenia.";
-    if (!state.category) return "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.";
-    if (state.entryType === "pro") {
+    if (state.categoryError) return state.categoryError;
+    if (isLicenseRequired(state.category)) {
       if (!form.elements.licenseNumber.value.trim()) {
         return "Podaj UCI ID lub numer licencji.";
       }
@@ -1090,7 +1067,6 @@ function setupRegistrationForm({ event, categories, consents }) {
     return {
       eventId: event.id,
       eventSlug: event.slug,
-      entryType: state.entryType,
       categoryId: state.category?.id || "",
       categoryCode: state.category?.code || "",
       firstName: form.elements.firstName.value.trim(),
@@ -1155,7 +1131,7 @@ function setupRegistrationForm({ event, categories, consents }) {
             <p>Potwierdzenie zostało wysłane e-mailem.</p>
             <p>Organizator poinformuje o zmianie statusu zgłoszenia.</p>
           </div>
-          <p>Kategoria: <strong>${escapeHtml(state.category.code)}</strong></p>
+          <p>Kategoria: <strong>${escapeHtml(categoryLabel(state.category.code))}</strong></p>
           <div class="hero-actions">
             ${confirmationLink ? `<a class="primary-btn" href="${escapeHtml(confirmationLink)}" data-link>Pokaż potwierdzenie i QR</a>` : ""}
             <a class="primary-btn" href="/zawody/${event.slug}" data-link>Wróć do wydarzenia</a>
@@ -1317,7 +1293,7 @@ function renderRules() {
           </ol>
           <h4>4.2. AMATOR</h4>
           <ol>
-            <li>AMATOR jest otwartą konkurencją towarzyszącą przeznaczoną dla zawodników bez licencji, którzy w dniu zawodów ukończyli 15. rok życia.</li>
+            <li>AMATOR jest otwartą konkurencją towarzyszącą przeznaczoną dla zawodników, którzy w dniu zawodów ukończyli 15. rok życia.</li>
             <li>Kobiety i mężczyźni mogą startować wspólnie.</li>
             <li>Organizator może utworzyć odrębną klasyfikację kobiet, jeżeli liczba uczestniczek lub warunki organizacyjne uzasadniają jej utworzenie.</li>
           </ol>
@@ -1326,9 +1302,9 @@ function renderRules() {
             <li>JUNIOR U15 jest otwartą konkurencją towarzyszącą dla zawodników, którzy w dniu zawodów nie ukończyli 15. roku życia.</li>
             <li>Dziewczęta i chłopcy mogą startować wspólnie.</li>
             <li>Organizator może utworzyć odrębną klasyfikację dziewcząt, jeżeli liczba uczestniczek lub warunki organizacyjne uzasadniają jej utworzenie.</li>
-            <li>O zakwalifikowaniu zawodnika bez licencji do kategorii JUNIOR U15 albo AMATOR decydują data urodzenia podana w formularzu zgłoszeniowym oraz data rozpoczęcia zawodów.</li>
-            <li>Zawodnik, który kończy 15 lat dokładnie w dniu rozpoczęcia zawodów, zostaje przypisany do kategorii AMATOR.</li>
-            <li>System zapisów automatycznie przypisuje zawodnika bez licencji do właściwej kategorii. Zawodnik nie wybiera samodzielnie pomiędzy AMATOR i JUNIOR U15.</li>
+            <li>Zawodnik wybiera kategorię podczas rejestracji. System sprawdza zgodność wybranej kategorii z datą urodzenia i datą rozpoczęcia zawodów.</li>
+            <li>Zawodnik, który kończy 15 lat dokładnie w dniu rozpoczęcia zawodów, powinien wybrać kategorię AMATOR.</li>
+            <li>W przypadku wyboru kategorii niezgodnej z wiekiem system blokuje wysłanie zgłoszenia i wskazuje właściwą kategorię.</li>
           </ol>
         </section>
 

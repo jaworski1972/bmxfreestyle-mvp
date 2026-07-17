@@ -55,7 +55,7 @@ const mockEvents = [
 
 const mockCategories = [
   { id: "seed-category-pro", eventId: "seed-event", code: "PRO", name: "PRO", description: "Dla zawodników z licencją PZKol, UCI lub federacji krajowej.", sortOrder: 1, capacity: 40, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: true },
-  { id: "seed-category-amator", eventId: "seed-event", code: "AMATOR", name: "AMATOR", description: "Otwarta kategoria dla riderów bez licencji.", sortOrder: 2, capacity: 50, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: false },
+  { id: "seed-category-amator", eventId: "seed-event", code: "AMATOR", name: "AMATOR", description: "Otwarta kategoria dla riderów od 15. roku życia.", sortOrder: 2, capacity: 50, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: false },
   { id: "seed-category-junior", eventId: "seed-event", code: "JUNIOR", name: "JUNIOR", description: "Dla młodszych zawodników. Granica wieku wynika z ustawień wydarzenia.", sortOrder: 3, capacity: 30, isActive: true, genderScope: "open", ageMin: null, ageMax: 15, requiresLicense: false },
   { id: "closed-category-amator", eventId: "closed-event", code: "AMATOR", name: "AMATOR", description: "Kategoria testowa.", sortOrder: 1, capacity: 20, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: false },
 ];
@@ -139,18 +139,6 @@ function ageAtDate(birthDateValue, targetDateValue) {
   const monthDiff = targetDate.getMonth() - birthDate.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && targetDate.getDate() < birthDate.getDate())) age -= 1;
   return age;
-}
-
-function entryTypeFromBody(body) {
-  const entryType = normalizeText(body.entryType).toLowerCase();
-  const categoryCode = normalizeText(body.categoryCode).toUpperCase();
-  if (entryType === "pro" || categoryCode === "PRO") return "pro";
-  return "open";
-}
-
-function assignedCategoryCodeForEntry(entryType, age) {
-  if (entryType === "pro") return "PRO";
-  return age < 15 ? "JUNIOR" : "AMATOR";
 }
 
 function ageAtEvent(registration) {
@@ -527,6 +515,7 @@ async function handleMockApi(request, response) {
     }
     const required = ["firstName", "lastName", "birthDate", "email", "phone", "city", "country"];
     const missing = required.filter((key) => !normalizeText(body[key]));
+    if (!normalizeText(body.categoryId) && !normalizeText(body.categoryCode)) missing.push("categoryId");
     if (missing.length) {
       sendJson(response, 400, { ok: false, code: "missing_required_fields", error: "Brakuje wymaganych pól zgłoszenia.", missing });
       return true;
@@ -537,22 +526,33 @@ async function handleMockApi(request, response) {
       sendJson(response, 400, { ok: false, code: "invalid_birth_date", error: "Nie udało się obliczyć wieku zawodnika dla daty wydarzenia." });
       return true;
     }
-    const entryType = entryTypeFromBody(body);
-    const assignedCategoryCode = assignedCategoryCodeForEntry(entryType, age);
-    const category = mockCategories.find((item) => item.eventId === event.id && item.code === assignedCategoryCode && item.isActive);
+    const requestedCategoryId = normalizeText(body.categoryId);
+    const requestedCategoryCode = normalizeText(body.categoryCode).toUpperCase();
+    const category = mockCategories.find((item) => (
+      item.eventId === event.id
+      && item.isActive
+      && (requestedCategoryId ? item.id === requestedCategoryId : item.code === requestedCategoryCode)
+    ));
     if (!category) {
       sendJson(response, 400, {
         ok: false,
         code: "category_not_available",
-        error: "Kategoria odpowiednia dla wieku zawodnika nie jest dostępna w tym wydarzeniu.",
-        assignedCategoryCode,
+        error: "Nie znaleziono wybranej kategorii.",
       });
       return true;
     }
 
     const minor = Number.isFinite(age) && age < 18;
+    if (category.code === "JUNIOR" && age >= 15) {
+      sendJson(response, 400, { ok: false, code: "junior_age_mismatch", error: "Kategoria JUNIOR U15 jest przeznaczona dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat. Wybierz kategorię AMATOR." });
+      return true;
+    }
+    if (category.code === "AMATOR" && age < 15) {
+      sendJson(response, 400, { ok: false, code: "amator_age_mismatch", error: "Zawodnik poniżej 15. roku życia powinien zostać zgłoszony do kategorii JUNIOR U15." });
+      return true;
+    }
 
-    if (entryType === "pro" && !normalizeText(body.licenseNumber)) {
+    if ((category.requiresLicense || category.code === "PRO") && !normalizeText(body.licenseNumber)) {
       sendJson(response, 400, { ok: false, code: "license_required", error: "Podaj UCI ID lub numer licencji." });
       return true;
     }
