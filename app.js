@@ -248,19 +248,32 @@ function categoryCards() {
 
 async function renderHome() {
   const events = await loadEvents();
-  const nextEvent = events[0] || fallbackEvent;
   const visibleEvents = events.length ? events : [fallbackEvent];
   app.innerHTML = `
-    <section class="hero">
-      <img src="/assets/bmx-hero.png" alt="Zawodnik BMX Freestyle w skateparku" />
-      <div class="hero-content">
-        <p class="eyebrow">Puchar Polski BMX Freestyle</p>
-        <h1>Zapisy na Puchar Polski BMX Freestyle</h1>
-        <p>Oficjalny system zgłoszeń BMX Freestyle Polska. Wybierz zawody, kategorię i wyślij zgłoszenie do weryfikacji organizatora.</p>
-        <div class="hero-actions">
-          <a class="primary-btn" href="/zapisy/${nextEvent.slug}" data-link>Rozpocznij rejestrację</a>
-          <a class="secondary-btn" href="/zawody" data-link>Zobacz kalendarz</a>
-        </div>
+    <section class="hero home-hero" aria-label="Puchar Polski BMX Freestyle">
+      <span class="sr-only">Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce.</span>
+    </section>
+    <section class="section action-section">
+      <div class="section-heading">
+        <p class="eyebrow">Start</p>
+        <h2>Wybierz, co chcesz zrobić</h2>
+      </div>
+      <div class="action-grid">
+        <article class="action-card">
+          <h3>Zapisz się na zawody</h3>
+          <p>Wybierz wydarzenie i wypełnij formularz zgłoszeniowy.</p>
+          <a class="primary-btn" href="/zawody" data-link>Przejdź do zapisów</a>
+        </article>
+        <article class="action-card">
+          <h3>Sprawdź kalendarz</h3>
+          <p>Zobacz aktualne rundy, lokalizacje i status zapisów.</p>
+          <a class="secondary-btn" href="/zawody" data-link>Zobacz zawody</a>
+        </article>
+        <article class="action-card">
+          <h3>Panel organizatora</h3>
+          <p>Logowanie do zgłoszeń, check-inu i list startowych.</p>
+          <a class="secondary-btn" href="/admin">Przejdź do panelu</a>
+        </article>
       </div>
     </section>
     <section class="section">

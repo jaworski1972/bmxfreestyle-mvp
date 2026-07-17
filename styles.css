@@ -83,6 +83,18 @@ a {
   font-weight: 760;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .header-cta,
 .primary-btn,
 .secondary-btn,
@@ -227,6 +239,7 @@ h3 {
 }
 
 .category-card,
+.action-card,
 .event-card,
 .step-card,
 .faq-item,
@@ -243,6 +256,27 @@ h3 {
   margin-bottom: 14px;
   font-size: 2.2rem;
   line-height: 1;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.action-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.action-card p {
+  margin-bottom: 8px;
+}
+
+.action-card .primary-btn,
+.action-card .secondary-btn {
+  width: max-content;
 }
 
 .event-list {
@@ -1110,6 +1144,7 @@ h3 {
   }
 
   .category-grid,
+  .action-grid,
   .category-choice-grid,
   .steps,
   .signup-placeholder,
@@ -1153,11 +1188,12 @@ h3 {
 
   .hero {
     min-height: 690px;
+    background-position: 58% center;
     align-items: end;
   }
 
   .hero::after {
-    background: linear-gradient(0deg, rgba(15, 17, 21, 0.9), rgba(15, 17, 21, 0.34));
+    display: none;
   }
 
   .hero-content {
@@ -1280,14 +1316,20 @@ body.checkin-body {
 
 .hero {
   background: #050607;
-  min-height: min(820px, calc(100vh - 74px));
+  min-height: min(760px, 80vh);
+}
+
+.home-hero {
+  width: 100%;
+  background:
+    #050607
+    url("/assets/hero-puchar-polski-desktop.png") center / cover no-repeat;
 }
 
 .hero img {
   filter: saturate(0.9) contrast(1.12) brightness(0.65);
 }
 
-.hero::before,
 .page-hero::before,
 .admin-hero::before {
   content: "";
@@ -1300,17 +1342,8 @@ body.checkin-body {
   opacity: 0.95;
 }
 
-.hero::before {
-  right: clamp(24px, 10vw, 140px);
-  top: 68%;
-  z-index: 1;
-}
-
 .hero::after {
-  background:
-    linear-gradient(90deg, rgba(5, 6, 7, 0.82), rgba(5, 6, 7, 0.62) 44%, rgba(5, 6, 7, 0.92)),
-    radial-gradient(circle at 72% 24%, rgba(142, 224, 0, 0.18), transparent 28%),
-    linear-gradient(0deg, rgba(5, 6, 7, 0.82), rgba(5, 6, 7, 0) 48%);
+  display: none;
 }
 
 .hero-content {
@@ -1335,6 +1368,10 @@ body.checkin-body {
 
 .section {
   padding-top: 78px;
+}
+
+.action-section {
+  padding-top: 58px;
 }
 
 .section-tight {
@@ -1414,6 +1451,7 @@ body.checkin-body {
 }
 
 .category-card,
+.action-card,
 .event-card,
 .step-card,
 .faq-item,
@@ -1783,6 +1821,10 @@ body.checkin-body {
 }
 
 @media (max-width: 980px) {
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+
   .page-hero,
   .section,
   .placeholder-page,
@@ -1819,21 +1861,22 @@ body.checkin-body {
   }
 
   .hero {
-    min-height: 720px;
+    min-height: 680px;
+    background-position: 58% center;
+  }
+
+  .home-hero {
+    min-height: 620px;
+    background-size: 620px auto;
+    background-position: left top;
   }
 
   .hero::before {
-    left: 20px;
-    right: auto;
-    top: auto;
-    bottom: 58px;
-    width: 220px;
+    display: none;
   }
 
   .hero::after {
-    background:
-      linear-gradient(0deg, rgba(5, 6, 7, 0.96), rgba(5, 6, 7, 0.52)),
-      radial-gradient(circle at 72% 22%, rgba(142, 224, 0, 0.18), transparent 35%);
+    display: none;
   }
 
   .hero-content {
