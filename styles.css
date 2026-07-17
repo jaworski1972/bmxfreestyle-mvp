@@ -2422,19 +2422,24 @@ body.checkin-body {
   object-fit: contain;
 }
 
+.partner-logo-gorzow img {
+  max-width: min(187px, 100%);
+  max-height: 77px;
+}
+
 .partner-logo-bogatynia img {
-  max-width: min(221px, 100%);
-  max-height: 91px;
+  max-width: min(265px, 100%);
+  max-height: 109px;
 }
 
 .partner-logo-jbl img {
-  max-width: min(204px, 100%);
-  max-height: 84px;
+  max-width: min(245px, 100%);
+  max-height: 101px;
 }
 
 .partner-logo-monster-energy img {
-  max-width: min(289px, 100%);
-  max-height: 119px;
+  max-width: min(434px, 100%);
+  max-height: 179px;
 }
 
 .partner-logo-frame.has-logo .partner-logo-placeholder {
