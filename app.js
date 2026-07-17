@@ -137,7 +137,7 @@ const partnerGroups = [
         logo: "/assets/partners/bogatynia.png",
         alt: "Miasto i Gmina Bogatynia",
         url: "",
-        logoScale: 1.2,
+        logoScale: 1.44,
       },
     ],
   },
@@ -161,7 +161,7 @@ const partnerGroups = [
         logo: "/assets/partners/monster-energy.png",
         alt: "Monster Energy",
         url: "",
-        logoScale: 2,
+        logoScale: 1.6,
       },
       {
         name: "Fox Racing",
