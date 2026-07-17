@@ -116,6 +116,200 @@ const fallbackConsents = [
   },
 ];
 
+const faqItems = [
+  {
+    id: "pro-license",
+    featured: true,
+    question: "Czy kategoria PRO wymaga licencji?",
+    answer: [
+      "Tak. Kategoria PRO jest rozgrywana jako Puchar Polski BMX Freestyle PZKol. W formularzu należy podać jedno pole: UCI ID / numer licencji.",
+      "Organizator może zweryfikować ważność licencji przed zaakceptowaniem zgłoszenia lub podczas check-inu.",
+    ],
+  },
+  {
+    id: "auto-category",
+    featured: true,
+    question: "Czy zawodnik sam wybiera kategorię AMATOR albo JUNIOR?",
+    answer: [
+      "Nie. Zawodnik bez licencji wybiera ścieżkę Start bez licencji, a system automatycznie przypisuje kategorię na podstawie daty urodzenia i daty rozpoczęcia zawodów.",
+      "Zawodnik, który w dniu rozpoczęcia zawodów nie ukończył 15 lat, zostaje przypisany do kategorii JUNIOR U15. Zawodnik, który ma 15 lat lub więcej, trafia do kategorii AMATOR.",
+      "Zawodnik, który kończy 15 lat dokładnie w dniu rozpoczęcia zawodów, zostaje przypisany do kategorii AMATOR.",
+    ],
+  },
+  {
+    id: "women-results",
+    featured: true,
+    question: "Czy kobiety i mężczyźni startują osobno?",
+    answer: [
+      "W kategorii PRO kobiety i mężczyźni mogą startować podczas tej samej sesji, ale wyniki kobiet są klasyfikowane oddzielnie.",
+      "W kategoriach AMATOR i JUNIOR U15 uczestnicy mogą startować wspólnie. Organizator może utworzyć osobną klasyfikację kobiet lub dziewcząt, jeśli liczba uczestniczek będzie uzasadniała jej utworzenie.",
+    ],
+  },
+  {
+    id: "accepted-status",
+    featured: true,
+    question: "Czy wysłanie formularza oznacza przyjęcie do zawodów?",
+    answer: [
+      "Nie. Po wysłaniu formularza zgłoszenie trafia do weryfikacji organizatora.",
+      "Dopiero status zaakceptowane oznacza przyjęcie zawodnika na listę uczestników.",
+      "Samo otrzymanie potwierdzenia rejestracji lub kodu QR nie gwarantuje dopuszczenia do startu.",
+    ],
+  },
+  {
+    id: "status-check",
+    featured: false,
+    question: "Jak sprawdzić status zgłoszenia?",
+    answer: [
+      "Po rejestracji zawodnik otrzyma link do strony potwierdzenia. Na stronie będzie widoczny aktualny status zgłoszenia oraz kod QR używany podczas check-inu.",
+      "Informacja o zmianie statusu może zostać również przesłana e-mailem lub SMS-em.",
+    ],
+  },
+  {
+    id: "qr-code",
+    featured: true,
+    question: "Do czego służy kod QR?",
+    answer: [
+      "Kod QR pozwala szybko odnaleźć zgłoszenie zawodnika podczas check-inu.",
+      "Można pokazać go w biurze zawodów na ekranie telefonu albo w formie wydruku.",
+      "Kod QR nie zastępuje licencji, wymaganych dokumentów ani pisemnej zgody opiekuna.",
+    ],
+  },
+  {
+    id: "entry-fee",
+    featured: true,
+    question: "Czy udział w zawodach jest płatny?",
+    answer: ["Nie. Udział w kategoriach PRO, AMATOR i JUNIOR U15 jest bezpłatny."],
+  },
+  {
+    id: "onsite-registration",
+    featured: true,
+    question: "Czy można zapisać się na miejscu?",
+    answer: [
+      "Tak, ale wyłącznie wtedy, gdy pozostaną wolne miejsca.",
+      "Jeżeli limit uczestników zostanie wyczerpany podczas zapisów internetowych, rejestracja na miejscu nie będzie prowadzona.",
+      "Najbezpieczniej zapisać się wcześniej przez stronę.",
+    ],
+  },
+  {
+    id: "minor-documents",
+    featured: true,
+    question: "Jakie dokumenty musi mieć zawodnik niepełnoletni?",
+    answer: [
+      "Każdy zawodnik niepełnoletni musi podczas check-inu dostarczyć podpisane pisemne oświadczenie rodzica lub opiekuna prawnego ze zgodą na udział w zawodach.",
+      "Brak oświadczenia oznacza brak możliwości udziału w oficjalnych treningach i przejazdach konkursowych.",
+    ],
+  },
+  {
+    id: "guardian-presence",
+    featured: false,
+    question: "Czy rodzic lub opiekun musi być obecny na zawodach?",
+    answer: [
+      "Rodzic lub opiekun musi przekazać wymagane dane i zgody oraz podpisać pisemne oświadczenie.",
+      "Organizator może dodatkowo wymagać obecności opiekuna podczas check-inu, jeśli będzie to wskazane w komunikacie dotyczącym konkretnego wydarzenia.",
+    ],
+  },
+  {
+    id: "minor-pro",
+    featured: false,
+    question: "Czy zawodnik niepełnoletni może startować w PRO?",
+    answer: [
+      "Tak, jeśli posiada ważny UCI ID lub numer licencji, spełnia wymagania kategorii PRO i dostarczy wymagane zgody rodzica lub opiekuna.",
+      "Wiek poniżej 15 lat nie oznacza automatycznego przypisania do JUNIOR U15, jeśli zawodnik świadomie zgłasza się do licencjonowanej kategorii PRO.",
+    ],
+  },
+  {
+    id: "helmet",
+    featured: true,
+    question: "Czy kask jest obowiązkowy?",
+    answer: [
+      "Tak. Kask jest obowiązkowy podczas oficjalnych treningów i przejazdów konkursowych.",
+      "Organizator zaleca również stosowanie ochraniaczy odpowiednich do wieku, poziomu zawodnika i wykonywanych ewolucji.",
+    ],
+  },
+  {
+    id: "bike-check",
+    featured: false,
+    question: "Czy rower będzie sprawdzany?",
+    answer: [
+      "Organizator może sprawdzić stan techniczny roweru podczas check-inu albo przed dopuszczeniem zawodnika do jazdy.",
+      "Zawodnik może nie zostać dopuszczony do startu, jeśli rower, kask albo inne elementy wyposażenia stwarzają zagrożenie.",
+    ],
+  },
+  {
+    id: "schedule",
+    featured: true,
+    question: "Kiedy będzie dostępny harmonogram?",
+    answer: [
+      "Harmonogram konkretnego wydarzenia będzie publikowany na stronie zawodów oraz w oficjalnych kanałach organizatora.",
+      "Może obejmować godziny check-inu, treningów, kwalifikacji, finałów i dekoracji.",
+    ],
+  },
+  {
+    id: "schedule-change",
+    featured: false,
+    question: "Czy harmonogram może się zmienić?",
+    answer: [
+      "Tak. Organizator może zmienić harmonogram lub format zawodów ze względu na pogodę, liczbę uczestników, stan obiektu, opóźnienia albo konieczność zapewnienia bezpieczeństwa.",
+      "Aktualne informacje będą publikowane na stronie oraz, w miarę możliwości, przesyłane e-mailem lub SMS-em.",
+    ],
+  },
+  {
+    id: "late-checkin",
+    featured: false,
+    question: "Co się stanie, jeśli zawodnik spóźni się na check-in?",
+    answer: [
+      "Spóźnienie może skutkować niedopuszczeniem do startu albo przekazaniem miejsca osobie z listy rezerwowej.",
+      "Godziny check-inu należy sprawdzić w komunikacie organizacyjnym konkretnego wydarzenia.",
+    ],
+  },
+  {
+    id: "data-change",
+    featured: false,
+    question: "Czy można zmienić dane po wysłaniu formularza?",
+    answer: [
+      "Tak, ale zmiany wymagające weryfikacji powinny zostać zgłoszone organizatorowi przed zawodami.",
+      "Nie należy wysyłać drugiego zgłoszenia dla tej samej osoby, chyba że organizator wyraźnie o to poprosi.",
+    ],
+  },
+  {
+    id: "needs-info",
+    featured: false,
+    question: "Co oznacza status wymaga uzupełnienia?",
+    answer: [
+      "Oznacza to, że organizator potrzebuje dodatkowych danych, dokumentu, zgody albo wyjaśnienia przed zaakceptowaniem zawodnika.",
+      "Informacja o wymaganym uzupełnieniu zostanie przekazana na dane kontaktowe podane w formularzu.",
+    ],
+  },
+  {
+    id: "waitlist",
+    featured: false,
+    question: "Co oznacza lista rezerwowa?",
+    answer: [
+      "Lista rezerwowa oznacza, że limit miejsc został czasowo wyczerpany.",
+      "Zawodnik może zostać zaakceptowany, jeśli zwolni się miejsce albo organizator zwiększy limit uczestników.",
+    ],
+  },
+  {
+    id: "rules",
+    featured: false,
+    question: "Gdzie znajdę regulamin zawodów?",
+    answer: [
+      'Aktualny regulamin jest dostępny pod adresem <a href="/regulamin" data-link>https://www.bmxseries.pl/regulamin</a>.',
+      "Przed wysłaniem zgłoszenia należy zapoznać się z regulaminem oraz zaakceptować jego treść.",
+    ],
+    html: true,
+  },
+  {
+    id: "contact",
+    featured: false,
+    question: "Jak skontaktować się z organizatorem?",
+    answer: [
+      "Dane kontaktowe dotyczące konkretnego wydarzenia są dostępne na stronie zawodów i w komunikacie organizacyjnym.",
+      "W sprawach zgłoszeń należy podać imię i nazwisko zawodnika oraz nazwę wydarzenia.",
+    ],
+  },
+];
+
 const routes = [
   { pattern: /^\/$/, render: renderHome },
   { pattern: /^\/zawody\/?$/, render: renderEvents },
@@ -1353,18 +1547,45 @@ function renderRules() {
   `;
 }
 
+function faqAnswerHtml(item) {
+  return item.answer.map((paragraph) => `<p>${item.html ? paragraph : escapeHtml(paragraph)}</p>`).join("");
+}
+
+function faqAccordion(items, prefix) {
+  return `
+    <div class="faq-list" data-faq-accordion>
+      ${items.map((item, index) => {
+        const buttonId = `${prefix}-button-${item.id}`;
+        const panelId = `${prefix}-panel-${item.id}`;
+        return `
+          <article class="faq-item">
+            <h3>
+              <button class="faq-question" id="${escapeHtml(buttonId)}" type="button" aria-expanded="false" aria-controls="${escapeHtml(panelId)}">
+                <span>${escapeHtml(item.question)}</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq-answer" id="${escapeHtml(panelId)}" role="region" aria-labelledby="${escapeHtml(buttonId)}" hidden>
+              <div class="faq-answer-inner">${faqAnswerHtml(item)}</div>
+            </div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function faqSection({ home = false } = {}) {
+  const items = home ? faqItems.filter((item) => item.featured).slice(0, 10) : faqItems;
   return `
     <section class="section ${home ? "home-faq-section" : ""}">
       <div class="section-heading">
         <p class="eyebrow">FAQ</p>
-        <h2>Najczęstsze pytania</h2>
+        <h2>${home ? "Najczęstsze pytania" : "FAQ"}</h2>
+        <p>${home ? "Najważniejsze odpowiedzi przed wysłaniem zgłoszenia." : "Pełna lista pytań i odpowiedzi dotyczących zapisów, kategorii i udziału w zawodach."}</p>
       </div>
-      <div class="faq-list">
-        <article class="faq-item"><h3>Czy PRO wymaga licencji?</h3><p>Tak. W formularzu PRO podajesz jedno pole: UCI ID / numer licencji.</p></article>
-        <article class="faq-item"><h3>Czy są osobne kategorie kobiet?</h3><p>Nie w MVP. Struktura kategorii ma jednak gender_scope, więc można je dodać później.</p></article>
-        <article class="faq-item"><h3>Czy wysłanie formularza oznacza akceptację?</h3><p>Nie. Zgłoszenie trafia do weryfikacji organizatora, a status przyjęcia zostanie potwierdzony osobno.</p></article>
-      </div>
+      ${faqAccordion(items, home ? "home-faq" : "faq")}
+      ${home ? '<div class="faq-more"><a class="secondary-btn" href="/faq" data-link>Zobacz wszystkie pytania</a></div>' : ""}
     </section>
   `;
 }
@@ -1403,7 +1624,32 @@ async function router() {
   }
   const match = path.match(route.pattern);
   await route.render(...match);
+  setupFaqAccordions();
   app.focus({ preventScroll: true });
+}
+
+function setupFaqAccordions() {
+  document.querySelectorAll("[data-faq-accordion]").forEach((accordion) => {
+    accordion.querySelectorAll(".faq-question").forEach((button) => {
+      const panel = document.getElementById(button.getAttribute("aria-controls"));
+      if (!panel) return;
+      button.addEventListener("click", () => {
+        const open = button.getAttribute("aria-expanded") === "true";
+        button.setAttribute("aria-expanded", String(!open));
+        button.closest(".faq-item")?.classList.toggle("is-open", !open);
+        panel.hidden = false;
+        panel.style.maxHeight = open ? `${panel.scrollHeight}px` : "0px";
+        requestAnimationFrame(() => {
+          panel.style.maxHeight = open ? "0px" : `${panel.scrollHeight}px`;
+        });
+        if (open) {
+          panel.addEventListener("transitionend", () => {
+            if (button.getAttribute("aria-expanded") === "false") panel.hidden = true;
+          }, { once: true });
+        }
+      });
+    });
+  });
 }
 
 document.addEventListener("click", (event) => {
