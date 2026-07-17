@@ -2,10 +2,12 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
+const { normalizeSmsPhone, smsRecipientsFromRegistrations } = require("./lib/sms");
 
 const port = Number(process.env.PORT || 5178);
 const root = __dirname;
 const registrations = [];
+const smsLogs = [];
 const mockSessions = new Set();
 
 const mockEvents = [
@@ -149,6 +151,42 @@ function registrationWithRelations(registration) {
     events: mockEvents.find((event) => event.id === registration.event_id),
     event_categories: mockCategories.find((category) => category.id === registration.category_id),
   };
+}
+
+function smsFiltersFromUrl(url) {
+  return {
+    eventId: url.searchParams.get("eventId") || "",
+    status: url.searchParams.get("status") || "",
+    categoryCode: url.searchParams.get("categoryCode") || "",
+    checkinStatus: url.searchParams.get("checkinStatus") || "",
+  };
+}
+
+function smsRecipientsForFilters(filters) {
+  return smsRecipientsFromRegistrations(registrations.map(registrationWithRelations), filters);
+}
+
+function addMockSmsLog(payload) {
+  smsLogs.unshift({
+    id: randomUUID(),
+    event_id: payload.eventId || null,
+    registration_id: payload.registrationId || null,
+    recipient_name: payload.recipientName || null,
+    recipient_phone: payload.recipientPhone || null,
+    recipient_type: payload.recipientType || null,
+    category_code: payload.categoryCode || null,
+    registration_status: payload.registrationStatus || null,
+    checkin_status: payload.checkinStatus || null,
+    message: payload.message || "",
+    provider: "dry_run",
+    provider_message_id: null,
+    send_status: payload.sendStatus || "dry_run",
+    error_message: payload.errorMessage || null,
+    sent_by: payload.sentBy || "admin",
+    sent_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    events: mockEvents.find((event) => event.id === payload.eventId) || null,
+  });
 }
 
 function confirmationUrlForToken(token) {
@@ -619,6 +657,100 @@ async function handleMockApi(request, response) {
     sendJson(response, 200, {
       ok: true,
       registrations: registrations.map(registrationWithRelations),
+    });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/sms/recipients") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do komunikacji SMS." });
+      return true;
+    }
+    const filters = smsFiltersFromUrl(url);
+    if (!filters.eventId) {
+      sendJson(response, 400, { ok: false, error: "Wybierz wydarzenie." });
+      return true;
+    }
+    sendJson(response, 200, { ok: true, ...smsRecipientsForFilters(filters) });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/sms/history") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do historii SMS." });
+      return true;
+    }
+    sendJson(response, 200, { ok: true, logs: smsLogs.slice(0, 50) });
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/sms/send-test") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do komunikacji SMS." });
+      return true;
+    }
+    const body = await readJsonBody(request);
+    const phone = normalizeSmsPhone(body.to);
+    const message = normalizeText(body.message);
+    if (!message) {
+      sendJson(response, 400, { ok: false, error: "Treść SMS jest wymagana." });
+      return true;
+    }
+    if (!phone.isValid) {
+      sendJson(response, 400, { ok: false, error: "Nieprawidłowy numer telefonu." });
+      return true;
+    }
+    addMockSmsLog({
+      recipientName: "Test SMS",
+      recipientPhone: phone.normalizedPhone,
+      message,
+      sendStatus: "dry_run",
+    });
+    sendJson(response, 200, { ok: true, result: { status: "dry_run", providerMessageId: null, error: null } });
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/sms/send") {
+    if (!hasAdminSession(request)) {
+      sendJson(response, 403, { ok: false, error: "Brak dostępu do komunikacji SMS." });
+      return true;
+    }
+    const body = await readJsonBody(request);
+    const message = normalizeText(body.message);
+    const filters = {
+      eventId: normalizeText(body.eventId),
+      status: normalizeText(body.status),
+      categoryCode: normalizeText(body.categoryCode),
+      checkinStatus: normalizeText(body.checkinStatus),
+    };
+    if (!filters.eventId) {
+      sendJson(response, 400, { ok: false, error: "Wybierz wydarzenie." });
+      return true;
+    }
+    if (!message) {
+      sendJson(response, 400, { ok: false, error: "Treść SMS jest wymagana." });
+      return true;
+    }
+    const recipientsResult = smsRecipientsForFilters(filters);
+    if (!recipientsResult.recipients.length) {
+      sendJson(response, 400, { ok: false, error: "Brak odbiorców dla wybranych filtrów.", ...recipientsResult });
+      return true;
+    }
+    recipientsResult.recipients.forEach((recipient) => {
+      addMockSmsLog({ ...recipient, message, sendStatus: "dry_run" });
+    });
+    sendJson(response, 200, {
+      ok: true,
+      summary: {
+        total: recipientsResult.recipients.length,
+        sent: 0,
+        dryRun: recipientsResult.recipients.length,
+        failed: 0,
+        skipped: recipientsResult.skipped.length,
+      },
+      results: recipientsResult.recipients.map((recipient) => ({ ...recipient, status: "dry_run", error: null })),
+      skipped: recipientsResult.skipped,
+      limited: recipientsResult.limited,
     });
     return true;
   }

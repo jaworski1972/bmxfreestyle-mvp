@@ -48,6 +48,20 @@ const orderByNameButton = document.querySelector("#orderByNameButton");
 const orderRandomButton = document.querySelector("#orderRandomButton");
 const saveStartOrderButton = document.querySelector("#saveStartOrderButton");
 const exportStartListButton = document.querySelector("#exportStartListButton");
+const smsEventSelect = document.querySelector("#smsEventSelect");
+const smsStatusFilter = document.querySelector("#smsStatusFilter");
+const smsCategoryFilter = document.querySelector("#smsCategoryFilter");
+const smsCheckinFilter = document.querySelector("#smsCheckinFilter");
+const smsRecipientsSummary = document.querySelector("#smsRecipientsSummary");
+const smsRecipientsPreview = document.querySelector("#smsRecipientsPreview");
+const smsMessageInput = document.querySelector("#smsMessage");
+const smsCounter = document.querySelector("#smsCounter");
+const smsTestPhone = document.querySelector("#smsTestPhone");
+const smsTestButton = document.querySelector("#smsTestButton");
+const smsRefreshButton = document.querySelector("#smsRefreshButton");
+const smsSendButton = document.querySelector("#smsSendButton");
+const smsMessageStatus = document.querySelector("#smsMessageStatus");
+const smsHistoryList = document.querySelector("#smsHistoryList");
 
 let registrationsState = [];
 let eventsState = [];
@@ -55,6 +69,9 @@ let categoriesState = [];
 let consentsState = [];
 let startListCategoriesState = [];
 let startListState = [];
+let smsRecipientsState = [];
+let smsSkippedState = [];
+let smsHistoryState = [];
 let currentUser = null;
 
 function escapeHtml(value) {
@@ -153,6 +170,7 @@ function currentPanelName() {
   if (path.includes("/admin/kategorie")) return "categories";
   if (path.includes("/admin/zgody")) return "consents";
   if (path.includes("/admin/listy-startowe")) return "startlists";
+  if (path.includes("/admin/sms")) return "sms";
   if (path.includes("/admin/eksport")) return "registrations";
   return "registrations";
 }
@@ -353,7 +371,7 @@ function renderEventsManagement() {
 
 function renderEventSelects() {
   const options = eventsState.map((event) => `<option value="${escapeHtml(event.id)}">${escapeHtml(event.name)}</option>`).join("");
-  [categoryEventSelect, consentEventSelect, startListEventSelect].forEach((select) => {
+  [categoryEventSelect, consentEventSelect, startListEventSelect, smsEventSelect].forEach((select) => {
     if (!select) return;
     const selected = select.value;
     select.innerHTML = options;
@@ -513,6 +531,194 @@ async function exportStartListCsv() {
     setMessage(startListMessage, "Eksport listy startowej pobrany.", "success");
   } catch (error) {
     setMessage(startListMessage, error.message || "Nie udało się pobrać CSV.", "error");
+  }
+}
+
+function smsFilters() {
+  return {
+    eventId: smsEventSelect?.value || "",
+    status: smsStatusFilter?.value || "",
+    categoryCode: smsCategoryFilter?.value || "",
+    checkinStatus: smsCheckinFilter?.value || "",
+  };
+}
+
+function smsSegmentStats(message) {
+  const text = String(message || "");
+  const length = Array.from(text).length;
+  if (!length) return { length: 0, segments: 0, encoding: "GSM" };
+  const unicode = /[^\u0000-\u007f]/.test(text);
+  const singleLimit = unicode ? 70 : 160;
+  const multiLimit = unicode ? 67 : 153;
+  const segments = length <= singleLimit ? 1 : Math.ceil(length / multiLimit);
+  return { length, segments, encoding: unicode ? "Unicode" : "GSM" };
+}
+
+function renderSmsCounter() {
+  if (!smsCounter || !smsMessageInput) return;
+  const stats = smsSegmentStats(smsMessageInput.value);
+  smsCounter.textContent = `${stats.length} znaków · ${stats.segments} segmentów · ${stats.encoding}`;
+}
+
+function skippedReasonLabel(reason) {
+  return {
+    missing_phone: "brak poprawnego numeru",
+    duplicate_phone: "duplikat numeru",
+  }[reason] || reason || "pominięty";
+}
+
+function renderSmsRecipients() {
+  if (!smsRecipientsSummary || !smsRecipientsPreview) return;
+  const count = smsRecipientsState.length;
+  const skipped = smsSkippedState.length;
+  smsRecipientsSummary.innerHTML = `
+    <strong>Liczba odbiorców: ${escapeHtml(count)}</strong>
+    <span>Pominięci bez numeru lub duplikaty: ${escapeHtml(skipped)}</span>
+  `;
+
+  if (!count && !skipped) {
+    smsRecipientsPreview.innerHTML = '<p class="form-message">Brak odbiorców dla wybranych filtrów.</p>';
+    return;
+  }
+
+  const recipientRows = smsRecipientsState.slice(0, 60).map((recipient) => `
+    <div class="sms-recipient-row">
+      <strong>${escapeHtml(recipient.recipientName || "-")}</strong>
+      <span>${escapeHtml(recipient.categoryCode || "-")} · ${escapeHtml(statusLabel(recipient.registrationStatus))} · ${escapeHtml(checkinLabel(recipient.checkinStatus))}</span>
+      <small>${escapeHtml(recipient.recipientPhone || "-")} · ${recipient.recipientType === "guardian" ? "opiekun" : "zawodnik"}${recipient.fallbackToAthlete ? " · fallback na telefon zawodnika" : ""}</small>
+    </div>
+  `).join("");
+  const skippedRows = smsSkippedState.slice(0, 20).map((recipient) => `
+    <div class="sms-recipient-row is-skipped">
+      <strong>${escapeHtml(recipient.recipientName || "-")}</strong>
+      <span>${escapeHtml(recipient.categoryCode || "-")} · ${escapeHtml(statusLabel(recipient.registrationStatus))} · ${escapeHtml(checkinLabel(recipient.checkinStatus))}</span>
+      <small>${escapeHtml(skippedReasonLabel(recipient.skippedReason))}</small>
+    </div>
+  `).join("");
+
+  smsRecipientsPreview.innerHTML = `
+    ${recipientRows}
+    ${skippedRows ? `<div class="sms-skipped-title">Pominięci</div>${skippedRows}` : ""}
+  `;
+}
+
+function renderSmsHistory() {
+  if (!smsHistoryList) return;
+  if (!smsHistoryState.length) {
+    smsHistoryList.innerHTML = '<p class="form-message">Brak historii wysyłek.</p>';
+    return;
+  }
+
+  smsHistoryList.innerHTML = smsHistoryState.map((log) => `
+    <article class="sms-history-item">
+      <div>
+        <strong>${escapeHtml(formatDate(log.created_at || log.createdAt))}</strong>
+        <span>${escapeHtml(log.events?.name || log.event?.name || "Bez wydarzenia")}</span>
+      </div>
+      <p>${escapeHtml(String(log.message || "").slice(0, 150))}${String(log.message || "").length > 150 ? "..." : ""}</p>
+      <small>${escapeHtml(log.send_status || log.sendStatus)} · ${escapeHtml(log.recipient_name || log.recipientName || "-")} · ${escapeHtml(log.sent_by || log.sentBy || "-")}</small>
+    </article>
+  `).join("");
+}
+
+async function loadSmsRecipients() {
+  if (!smsEventSelect?.value) {
+    smsRecipientsState = [];
+    smsSkippedState = [];
+    renderSmsRecipients();
+    return;
+  }
+
+  try {
+    setMessage(smsMessageStatus, "Ładuję odbiorców SMS...", "info");
+    const params = new URLSearchParams();
+    Object.entries(smsFilters()).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    const response = await fetch(`/api/sms/recipients?${params}`, { headers: authHeaders() });
+    const payload = await response.json();
+    if (response.status === 403 || response.status === 401) {
+      clearSession();
+      showLogin("Sesja wygasła. Zaloguj się ponownie.");
+      return;
+    }
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać odbiorców SMS.");
+    smsRecipientsState = payload.recipients || [];
+    smsSkippedState = payload.skipped || [];
+    renderSmsRecipients();
+    setMessage(smsMessageStatus, payload.limited ? "Lista została ograniczona do 500 odbiorców." : "Odbiorcy SMS załadowani.", "success");
+  } catch (error) {
+    setMessage(smsMessageStatus, error.message || "Nie udało się pobrać odbiorców SMS.", "error");
+    renderSmsRecipients();
+  }
+}
+
+async function loadSmsHistory() {
+  if (!smsHistoryList) return;
+  try {
+    const response = await fetch("/api/sms/history", { headers: authHeaders() });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać historii SMS.");
+    smsHistoryState = payload.logs || [];
+    renderSmsHistory();
+  } catch (error) {
+    smsHistoryState = [];
+    smsHistoryList.innerHTML = `<p class="form-message" data-type="error">${escapeHtml(error.message || "Nie udało się pobrać historii SMS.")}</p>`;
+  }
+}
+
+async function handleSmsTest() {
+  const to = smsTestPhone?.value.trim() || "";
+  const message = smsMessageInput?.value.trim() || "";
+  if (!message) {
+    setMessage(smsMessageStatus, "Treść SMS jest wymagana.", "error");
+    return;
+  }
+
+  try {
+    setMessage(smsMessageStatus, "Wysyłam test SMS...", "info");
+    const response = await fetch("/api/sms/send-test", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ to, message }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || payload.result?.error || "Nie udało się wysłać testowego SMS.");
+    setMessage(smsMessageStatus, payload.result?.status === "dry_run" ? "SMS-y są obecnie w trybie testowym." : "SMS został wysłany testowo.", "success");
+    await loadSmsHistory();
+  } catch (error) {
+    setMessage(smsMessageStatus, error.message || "Nie udało się wysłać testowego SMS.", "error");
+  }
+}
+
+async function handleSmsSend() {
+  const message = smsMessageInput?.value.trim() || "";
+  if (!message) {
+    setMessage(smsMessageStatus, "Treść SMS jest wymagana.", "error");
+    return;
+  }
+  if (!smsRecipientsState.length) {
+    setMessage(smsMessageStatus, "Brak odbiorców dla wybranych filtrów.", "error");
+    return;
+  }
+
+  const approved = window.confirm(`Wyślesz SMS do ${smsRecipientsState.length} odbiorców. Tej operacji nie można cofnąć. Kontynuować?`);
+  if (!approved) return;
+
+  try {
+    setMessage(smsMessageStatus, "Wysyłam SMS...", "info");
+    const response = await fetch("/api/sms/send", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...smsFilters(), message }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się wysłać SMS.");
+    const summary = payload.summary || {};
+    setMessage(smsMessageStatus, `Wysyłka SMS zakończona. Wysłane: ${summary.sent || 0}, dry-run: ${summary.dryRun || 0}, błędy: ${summary.failed || 0}.`, "success");
+    await Promise.all([loadSmsRecipients(), loadSmsHistory()]);
+  } catch (error) {
+    setMessage(smsMessageStatus, error.message || "Nie udało się wysłać SMS.", "error");
   }
 }
 
@@ -777,11 +983,12 @@ async function loadConfiguration() {
       categoryEventSelect.value ||= eventsState[0].id;
       consentEventSelect.value ||= eventsState[0].id;
       startListEventSelect.value ||= eventsState[0].id;
+      if (smsEventSelect) smsEventSelect.value ||= eventsState[0].id;
       categoryForm.elements.eventId.value = categoryEventSelect.value;
       consentForm.elements.eventId.value = consentEventSelect.value;
       await Promise.all([loadCategoriesForSelectedEvent(), loadConsentsForSelectedEvent()]);
       await loadStartListCategories();
-      await loadStartList();
+      await Promise.all([loadStartList(), loadSmsRecipients(), loadSmsHistory()]);
     }
     if (eventsState[0]) fillEventForm(eventsState[0]);
     resetCategoryForm();
@@ -1105,5 +1312,14 @@ orderByNameButton?.addEventListener("click", () => assignStartOrder("name"));
 orderRandomButton?.addEventListener("click", () => assignStartOrder("random"));
 saveStartOrderButton?.addEventListener("click", saveStartOrder);
 exportStartListButton?.addEventListener("click", exportStartListCsv);
+
+[smsEventSelect, smsStatusFilter, smsCategoryFilter, smsCheckinFilter].forEach((control) => {
+  control?.addEventListener("change", loadSmsRecipients);
+});
+smsMessageInput?.addEventListener("input", renderSmsCounter);
+smsRefreshButton?.addEventListener("click", loadSmsRecipients);
+smsTestButton?.addEventListener("click", handleSmsTest);
+smsSendButton?.addEventListener("click", handleSmsSend);
+renderSmsCounter();
 
 verifySession();

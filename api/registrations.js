@@ -46,6 +46,14 @@ module.exports = async function handler(request, response) {
         return;
       }
 
+      const { data: previousRegistration, error: previousError } = await supabase
+        .from("registrations")
+        .select("id,status")
+        .eq("id", id)
+        .single();
+
+      if (previousError) throw previousError;
+
       const { data, error } = await supabase
         .from("registrations")
         .update({
@@ -72,15 +80,33 @@ module.exports = async function handler(request, response) {
       }
 
       const smsMessage = data.confirmation_token
-        ? `BMX Freestyle Polska: zgłoszenie zaakceptowane. Pokaż QR przy check-inie: ${confirmationUrl(data.confirmation_token)}`
+        ? `BMX Series: zgłoszenie zaakceptowane. Pokaż QR przy check-inie: ${confirmationUrl(data.confirmation_token)}`
         : "";
+      let alreadySentAcceptedSms = false;
+      if (data.confirmation_token && status === "accepted" && enabled("SEND_SMS_ON_ACCEPTED")) {
+        const { data: existingSmsLogs, error: smsLogError } = await supabase
+          .from("sms_logs")
+          .select("id")
+          .eq("registration_id", data.id)
+          .in("send_status", ["sent", "dry_run"])
+          .ilike("message", "%zgłoszenie zaakceptowane%")
+          .limit(1);
+        if (smsLogError) {
+          console.error("BMX Freestyle accepted SMS duplicate check failed", smsLogError);
+        }
+        alreadySentAcceptedSms = Boolean(existingSmsLogs?.length);
+      }
       const sms = await sendSmsNotification({
         supabase,
         event: data.events || {},
         registration: data,
         message: smsMessage,
         reason: data.confirmation_token ? "accepted_sms_disabled" : "missing_confirmation_token",
-        force: Boolean(data.confirmation_token) && status === "accepted" && enabled("SEND_SMS_ON_ACCEPTED"),
+        force: Boolean(data.confirmation_token)
+          && status === "accepted"
+          && previousRegistration.status !== "accepted"
+          && !alreadySentAcceptedSms
+          && enabled("SEND_SMS_ON_ACCEPTED"),
       });
 
       json(response, 200, { ok: true, registration: data, email, sms });

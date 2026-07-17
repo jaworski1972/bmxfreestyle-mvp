@@ -17,6 +17,8 @@ Checklist for staging or production deployment on Vercel with real Supabase and 
 - Configure `MAIL_FROM`, `MAIL_REPLY_TO`, and `ADMIN_NOTIFICATION_EMAIL`.
 - Set `APP_URL` to the staging Vercel URL first, then to `https://www.bmxseries.pl` for production.
 - Set production admin credentials with `ADMIN_LOGIN`, `ADMIN_PASSWORD`, and `ADMIN_AUTH_SECRET`.
+- Keep SMS safe by default: `SMS_PROVIDER=smsapi`, `SMS_DRY_RUN=true`, `SEND_SMS_ON_REGISTRATION=false`, `SEND_SMS_ON_ACCEPTED=false`.
+- If SMS logs were created before the SMSAPI module, run `sql/supabase-bmx-smsapi-migration.sql` in Supabase SQL Editor.
 
 ## Required Vercel Environment Variables
 
@@ -30,6 +32,12 @@ Checklist for staging or production deployment on Vercel with real Supabase and 
 - `ADMIN_LOGIN`
 - `ADMIN_PASSWORD`
 - `ADMIN_AUTH_SECRET`
+- `SMS_PROVIDER`
+- `SMS_API_TOKEN`
+- `SMS_FROM`
+- `SMS_DRY_RUN`
+- `SEND_SMS_ON_REGISTRATION`
+- `SEND_SMS_ON_ACCEPTED`
 
 ## Public Smoke Tests
 
@@ -77,6 +85,17 @@ Checklist for staging or production deployment on Vercel with real Supabase and 
 - Confirm all e-mail links use `APP_URL`.
 - On staging, confirm links use the staging Vercel URL.
 - On production, confirm links use `https://www.bmxseries.pl`.
+
+## SMS Smoke Tests
+
+- Open `/admin/sms` and confirm login is required.
+- Confirm recipient preview loads for a selected event.
+- Confirm minors use guardian phone first.
+- Confirm adults use athlete phone.
+- Confirm duplicate phone numbers are skipped.
+- Confirm `SMS_DRY_RUN=true` saves `dry_run` logs without real SMSAPI requests.
+- Send one test SMS only after setting `SMS_DRY_RUN=false` and keeping automatic SMS flags disabled.
+- Confirm SMS links use `https://www.bmxseries.pl`.
 
 ## Domain Cutover
 

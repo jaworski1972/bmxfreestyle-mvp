@@ -346,7 +346,7 @@ module.exports = async function handler(request, response) {
 
     const storedRegistration = { ...registration, id: data.id, confirmation_token: data.confirmation_token };
     const confirmUrl = confirmationUrl(data.confirmation_token);
-    const smsMessage = `BMX Freestyle Polska: zgłoszenie przyjęte do systemu. Status: oczekuje na weryfikację. Potwierdzenie i QR: ${confirmUrl}`;
+    const smsMessage = `BMX Series: zgłoszenie przyjęte do systemu. Status: oczekuje na weryfikację. Potwierdzenie i QR: ${confirmUrl}`;
     const sms = await sendSmsNotification({
       supabase,
       event,

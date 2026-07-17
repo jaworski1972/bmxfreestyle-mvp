@@ -144,7 +144,7 @@ Opcjonalne SMS:
 
 - `SMS_PROVIDER` — obsługiwany provider, obecnie `smsapi`.
 - `SMS_API_TOKEN` — token providera SMS.
-- `SMS_FROM` — opcjonalna nazwa nadawcy.
+- `SMS_FROM` — zatwierdzona nazwa nadawcy SMSAPI.
 - `SMS_DRY_RUN` — `true` symuluje wysyłkę i loguje próbę bez kontaktu z providerem.
 - `SEND_SMS_ON_REGISTRATION` — `true` włącza SMS po utworzeniu zgłoszenia.
 - `SEND_SMS_ON_ACCEPTED` — `true` włącza SMS po zmianie statusu na `accepted`.

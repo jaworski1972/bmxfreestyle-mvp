@@ -771,8 +771,10 @@ h3 {
 .admin-filters input,
 .admin-filters select,
 .login-form input,
+.sms-test-grid input,
 .status-editor select,
-.status-editor textarea {
+.status-editor textarea,
+.sms-message-field textarea {
   min-width: 0;
   height: 44px;
   border: 1px solid var(--line);
@@ -783,10 +785,120 @@ h3 {
   font: inherit;
 }
 
-.status-editor textarea {
+.status-editor textarea,
+.sms-message-field textarea {
   height: auto;
   padding: 12px;
   resize: vertical;
+}
+
+.sms-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.sms-compose,
+.sms-history {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.sms-filters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+.sms-preview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border: 1px solid rgba(180, 255, 0, 0.28);
+  border-radius: 8px;
+  background: #f7ffe8;
+}
+
+.sms-preview-summary span {
+  color: var(--muted);
+  font-weight: 780;
+}
+
+.sms-preview-list,
+.sms-history-list {
+  display: grid;
+  gap: 10px;
+  max-height: 460px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.sms-recipient-row,
+.sms-history-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.sms-recipient-row span,
+.sms-recipient-row small,
+.sms-history-item span,
+.sms-history-item small {
+  color: var(--muted);
+}
+
+.sms-recipient-row.is-skipped {
+  opacity: 0.72;
+}
+
+.sms-skipped-title {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.sms-message-field,
+.sms-test-grid label {
+  display: grid;
+  gap: 8px;
+  color: #30363f;
+  font-weight: 850;
+}
+
+.sms-counter {
+  color: var(--muted);
+  font-weight: 780;
+}
+
+.sms-test-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.sms-history-item div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.sms-history-item p {
+  margin: 0;
+}
+
+.compact-heading {
+  margin-bottom: 0;
 }
 
 .management-layout {
@@ -2464,6 +2576,17 @@ body.checkin-body {
   .image-hero img {
     width: 100%;
     height: auto;
+  }
+
+  .sms-layout,
+  .sms-filters,
+  .sms-test-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sms-test-grid .secondary-btn,
+  .sms-send-button {
+    width: 100%;
   }
 }
 

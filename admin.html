@@ -20,6 +20,7 @@
         <a href="/admin/kategorie">Kategorie</a>
         <a href="/admin/zgody">Zgody</a>
         <a href="/admin/eksport">Eksport</a>
+        <a href="/admin/sms">Komunikacja SMS</a>
         <a href="/checkin">Check-in</a>
         <a href="/admin/listy-startowe">Listy startowe</a>
       </nav>
@@ -149,6 +150,75 @@
               </thead>
               <tbody id="startListTable"></tbody>
             </table>
+          </div>
+        </section>
+
+        <section class="admin-card admin-panel" data-admin-panel="sms">
+          <div class="section-heading">
+            <p class="eyebrow">Komunikacja</p>
+            <h2>Komunikacja SMS</h2>
+            <p>Podgląd odbiorców, test wysyłki i wiadomości operacyjne dla zawodników oraz opiekunów.</p>
+          </div>
+
+          <div class="sms-layout">
+            <section class="sms-compose">
+              <div class="admin-filters sms-filters">
+                <label>Wybierz wydarzenie<select id="smsEventSelect"></select></label>
+                <label>Status zgłoszenia
+                  <select id="smsStatusFilter">
+                    <option value="">Wszystkie</option>
+                    <option value="pending_review">Oczekuje na weryfikację</option>
+                    <option value="accepted">Zaakceptowane</option>
+                    <option value="needs_info">Wymaga uzupełnienia</option>
+                    <option value="rejected">Odrzucone</option>
+                    <option value="waitlist">Lista rezerwowa</option>
+                  </select>
+                </label>
+                <label>Kategoria
+                  <select id="smsCategoryFilter">
+                    <option value="">Wszystkie</option>
+                    <option value="PRO">PRO</option>
+                    <option value="AMATOR">AMATOR</option>
+                    <option value="JUNIOR">JUNIOR</option>
+                  </select>
+                </label>
+                <label>Status check-in
+                  <select id="smsCheckinFilter">
+                    <option value="">Wszystkie</option>
+                    <option value="not_checked_in">Brak check-in</option>
+                    <option value="checked_in">Obecny</option>
+                    <option value="absent">Nieobecny</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="sms-preview-summary" id="smsRecipientsSummary">Wybierz wydarzenie, żeby zobaczyć odbiorców.</div>
+              <div class="sms-preview-list" id="smsRecipientsPreview"></div>
+
+              <label class="sms-message-field">Treść SMS
+                <textarea id="smsMessage" rows="5" maxlength="900" placeholder="BMX Series: przypomnienie organizacyjne..."></textarea>
+              </label>
+              <div class="sms-counter" id="smsCounter">0 znaków · 0 segmentów</div>
+
+              <div class="sms-test-grid">
+                <label>Numer testowy<input id="smsTestPhone" inputmode="tel" placeholder="+48 000 000 000" /></label>
+                <button class="secondary-btn" id="smsTestButton" type="button">Wyślij test</button>
+              </div>
+
+              <div class="admin-actions">
+                <button class="secondary-btn" id="smsRefreshButton" type="button">Odśwież odbiorców</button>
+                <button class="primary-btn" id="smsSendButton" type="button">Wyślij SMS</button>
+              </div>
+              <p class="form-message" id="smsMessageStatus" role="status"></p>
+            </section>
+
+            <section class="sms-history">
+              <div class="section-heading compact-heading">
+                <p class="eyebrow">Logi</p>
+                <h3>Historia wysyłek</h3>
+              </div>
+              <div class="sms-history-list" id="smsHistoryList"></div>
+            </section>
           </div>
         </section>
 
