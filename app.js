@@ -1,5 +1,9 @@
 const app = document.querySelector("#app");
 
+const SHOW_HOMEPAGE_EVENTS = false;
+const SHOW_HOMEPAGE_FLOW = false;
+const SHOW_HOMEPAGE_CATEGORIES = false;
+
 const fallbackEvent = {
   id: "seed-event",
   slug: "puchar-polski-bmx-freestyle-runda-1",
@@ -275,17 +279,34 @@ async function renderHome() {
       </picture>
     </section>
     <div class="section-glow-separator" aria-hidden="true"></div>
-    ${fastSignupSection(visibleEvents, selectedEvent, selectedCategories)}
-    <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
-    <section class="section">
+    <div class="home-dark-content">
+      ${fastSignupSection(visibleEvents, selectedEvent, selectedCategories)}
+      <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
+      ${SHOW_HOMEPAGE_EVENTS ? homepageEventsSection(visibleEvents) : ""}
+      ${SHOW_HOMEPAGE_FLOW ? homepageFlowSection() : ""}
+      ${SHOW_HOMEPAGE_CATEGORIES ? homepageCategoriesSection() : ""}
+      ${faqSection({ home: true })}
+    </div>
+  `;
+  setupFastSignup({ events: visibleEvents, initialCategories: selectedCategories });
+}
+
+function homepageEventsSection(events) {
+  return `
+    <section class="section homepage-optional-section">
       <div class="section-heading">
         <p class="eyebrow">Najbliższe zawody</p>
         <h2>Kalendarz rund</h2>
         <p>Wybierz właściwą rundę Pucharu Polski BMX Freestyle i przejdź do szczegółów albo formularza zapisów.</p>
       </div>
-      <div class="event-list">${visibleEvents.map(eventCard).join("")}</div>
+      <div class="event-list">${events.map(eventCard).join("")}</div>
     </section>
-    <section class="section">
+  `;
+}
+
+function homepageFlowSection() {
+  return `
+    <section class="section homepage-optional-section">
       <div class="section-heading">
         <p class="eyebrow">Flow zgłoszenia</p>
         <h2>Jak działa zgłoszenie?</h2>
@@ -298,7 +319,12 @@ async function renderHome() {
         <article class="step-card"><span>4</span><h3>Poczekaj na weryfikację</h3><p>Organizator potwierdzi przyjęcie lub poprosi o uzupełnienie danych.</p></article>
       </div>
     </section>
-    <section class="section">
+  `;
+}
+
+function homepageCategoriesSection() {
+  return `
+    <section class="section homepage-optional-section">
       <div class="section-heading">
         <p class="eyebrow">Kategorie startowe</p>
         <h2>PRO, AMATOR, JUNIOR</h2>
@@ -306,9 +332,7 @@ async function renderHome() {
       </div>
       <div class="category-grid">${categoryCards()}</div>
     </section>
-    ${faqSection()}
   `;
-  setupFastSignup({ events: visibleEvents, initialCategories: selectedCategories });
 }
 
 function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCode(categories)) {
@@ -922,9 +946,9 @@ function renderRules() {
   `;
 }
 
-function faqSection() {
+function faqSection({ home = false } = {}) {
   return `
-    <section class="section">
+    <section class="section ${home ? "home-faq-section" : ""}">
       <div class="section-heading">
         <p class="eyebrow">FAQ</p>
         <h2>Najczęstsze pytania</h2>
@@ -964,6 +988,7 @@ function renderNotFound() {
 
 async function router() {
   const path = window.location.pathname;
+  document.body.classList.toggle("home-page", path === "/");
   const route = routes.find((candidate) => candidate.pattern.test(path));
   if (!route) {
     renderNotFound();

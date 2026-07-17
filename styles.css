@@ -1370,6 +1370,31 @@ body.checkin-body {
   );
 }
 
+.home-dark-content {
+  position: relative;
+  overflow: hidden;
+  background-color: #050505;
+  background-image: url("/assets/home-dark-bg-desktop.png");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: repeat-y;
+  color: var(--white);
+}
+
+.home-dark-content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 5, 5, 0.06) 0%, rgba(5, 5, 5, 0.24) 100%);
+  pointer-events: none;
+}
+
+.home-dark-content > * {
+  position: relative;
+  z-index: 1;
+}
+
 .image-hero {
   display: block;
   min-height: 0;
@@ -1687,7 +1712,7 @@ body.checkin-body {
   right: 0;
   bottom: 0;
   height: 92px;
-  background: linear-gradient(180deg, rgba(11, 13, 10, 0), var(--paper));
+  background: linear-gradient(180deg, rgba(11, 13, 10, 0), rgba(5, 5, 5, 0.68));
   pointer-events: none;
 }
 
@@ -1870,6 +1895,70 @@ body.checkin-body {
   cursor: not-allowed;
   opacity: 0.55;
   box-shadow: none;
+}
+
+.home-faq-section {
+  padding-top: clamp(54px, 8vw, 92px);
+  padding-bottom: clamp(58px, 8vw, 96px);
+}
+
+.home-faq-section .section-heading h2 {
+  color: var(--white);
+}
+
+.home-faq-section .section-heading p:not(.eyebrow) {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.home-faq-section .faq-list {
+  gap: 14px;
+}
+
+.home-faq-section .faq-item {
+  background: rgba(5, 5, 5, 0.74);
+  border: 1px solid rgba(180, 255, 0, 0.2);
+  color: var(--white);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.44);
+}
+
+.home-faq-section .faq-item h3 {
+  color: var(--white);
+}
+
+.home-faq-section .faq-item p {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.home-page .site-footer {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
+  padding: 34px clamp(18px, 5vw, 70px) 46px;
+  background:
+    linear-gradient(180deg, rgba(5, 5, 5, 0.92), rgba(5, 5, 5, 1)),
+    url("/assets/home-dark-bg-desktop.png") center bottom / cover repeat-y;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--white);
+}
+
+.home-page .site-footer::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), rgba(180, 255, 0, 0.18), transparent);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+}
+
+.home-page .site-footer p {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.home-page .site-footer a {
+  color: rgba(255, 255, 255, 0.84);
 }
 
 .card-kicker {
