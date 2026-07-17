@@ -12,6 +12,11 @@ function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeGender(value) {
+  const gender = String(value || "").trim().toLowerCase();
+  return ["female", "male"].includes(gender) ? gender : "";
+}
+
 function parseDate(value) {
   const raw = String(value || "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
@@ -199,6 +204,17 @@ module.exports = async function handler(request, response) {
       return;
     }
 
+    const gender = normalizeGender(body.gender);
+    if (!gender) {
+      json(response, 400, {
+        ok: false,
+        code: "invalid_gender",
+        error: "Wybierz płeć zawodnika: kobieta albo mężczyzna.",
+        missing: ["gender"],
+      });
+      return;
+    }
+
     const phone = normalizePolishPhone(body.phone);
     if (!phone.isValid) {
       json(response, 400, {
@@ -311,7 +327,7 @@ module.exports = async function handler(request, response) {
       phone: phone.normalizedPhone,
       city: cleanText(body.city, 120) || null,
       country: cleanText(body.country, 80) || "Polska",
-      gender: cleanText(body.gender, 40) || null,
+      gender,
       club_team: cleanText(body.clubTeam, 160) || null,
       license_type: cleanText(body.licenseType, 80) || null,
       license_number: cleanText(body.licenseNumber, 120) || null,

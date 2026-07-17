@@ -928,14 +928,11 @@ async function renderSignupPlaceholder(slug) {
             <label>Telefon<input name="phone" type="tel" autocomplete="tel" required ${formDisabled ? "disabled" : ""} /></label>
             <label>Miasto<input name="city" autocomplete="address-level2" required ${formDisabled ? "disabled" : ""} /></label>
             <label>Kraj<input name="country" autocomplete="country-name" value="Polska" required ${formDisabled ? "disabled" : ""} /></label>
-            <label>Płeć <span>opcjonalnie, statystycznie</span>
-              <select name="gender" ${formDisabled ? "disabled" : ""}>
-                <option value="">Nie podaję</option>
-                <option value="female">Kobieta</option>
-                <option value="male">Mężczyzna</option>
-                <option value="other">Inna / wolę nie określać</option>
-              </select>
-            </label>
+            <fieldset class="form-choice-group">
+              <legend>Płeć</legend>
+              <label><input type="radio" name="gender" value="female" required ${formDisabled ? "disabled" : ""} /> Kobieta</label>
+              <label><input type="radio" name="gender" value="male" ${formDisabled ? "disabled" : ""} /> Mężczyzna</label>
+            </fieldset>
             <label class="full">Klub / team <span>opcjonalnie</span><input name="clubTeam" ${formDisabled ? "disabled" : ""} /></label>
           </div>
           <p class="inline-status" id="ageStatus"></p>
@@ -1154,6 +1151,9 @@ function setupRegistrationForm({ event, categories, consents }) {
       if (!form.elements.licenseNumber.value.trim()) {
         return "Podaj UCI ID lub numer licencji.";
       }
+    }
+    if (!form.elements.gender.value) {
+      return "Wybierz płeć zawodnika: kobieta albo mężczyzna.";
     }
     if (state.minor) {
       if (!form.elements.guardianFullName.value || !form.elements.guardianEmail.value || !form.elements.guardianPhone.value || !form.elements.guardianRelationship.value) {

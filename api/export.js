@@ -19,6 +19,13 @@ function categoryLabel(code) {
   return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
 }
 
+function genderLabel(gender) {
+  return {
+    female: "Kobieta",
+    male: "Mężczyzna",
+  }[String(gender || "").toLowerCase()] || "";
+}
+
 module.exports = async function handler(request, response) {
   try {
     if (!requireAdmin(request)) {
@@ -34,6 +41,7 @@ module.exports = async function handler(request, response) {
     const eventId = String(request.query?.eventId || "").trim();
     const categoryCode = String(request.query?.category || "").trim().toUpperCase();
     const status = String(request.query?.status || "").trim();
+    const gender = String(request.query?.gender || "").trim().toLowerCase();
     let query = getSupabase()
       .from("registrations")
       .select("*, event_categories(code,name), events(name,slug,starts_at)")
@@ -42,6 +50,7 @@ module.exports = async function handler(request, response) {
     if (eventId) query = query.eq("event_id", eventId);
     if (categoryCode) query = query.eq("event_categories.code", categoryCode);
     if (status) query = query.eq("status", status);
+    if (["female", "male"].includes(gender)) query = query.eq("gender", gender);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -81,7 +90,7 @@ module.exports = async function handler(request, response) {
       ageAtEvent(registration.birth_date, registration.events?.starts_at),
       registration.email,
       registration.phone,
-      registration.gender,
+      genderLabel(registration.gender),
       registration.city,
       registration.country,
       registration.club_team,

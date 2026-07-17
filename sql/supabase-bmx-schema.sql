@@ -81,6 +81,7 @@ create table if not exists public.registrations (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint registrations_status_check check (status in ('new', 'pending_review', 'accepted', 'needs_info', 'rejected', 'waitlist')),
+  constraint registrations_gender_check check (gender is null or gender in ('female', 'male')),
   constraint registrations_checkin_status_check check (checkin_status in ('not_checked_in', 'checked_in', 'absent')),
   constraint registrations_source_check check (source in ('public', 'admin')),
   constraint registrations_guardian_required_check check (

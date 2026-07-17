@@ -13,6 +13,7 @@ const adminSearch = document.querySelector("#adminSearch");
 const adminEventFilter = document.querySelector("#adminEventFilter");
 const adminStatusFilter = document.querySelector("#adminStatusFilter");
 const adminCategoryFilter = document.querySelector("#adminCategoryFilter");
+const adminGenderFilter = document.querySelector("#adminGenderFilter");
 const minorOnlyFilter = document.querySelector("#minorOnlyFilter");
 const proOnlyFilter = document.querySelector("#proOnlyFilter");
 const actionOnlyFilter = document.querySelector("#actionOnlyFilter");
@@ -125,6 +126,13 @@ function categoryLabel(code) {
   return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
 }
 
+function genderLabel(gender) {
+  return {
+    female: "Kobieta",
+    male: "Mężczyzna",
+  }[String(gender || "").toLowerCase()] || "-";
+}
+
 function categoryName(registration) {
   return categoryLabel(registration.event_categories?.code || registration.category?.code || registration.event_categories?.name || "");
 }
@@ -211,6 +219,7 @@ function registrationMatches(registration) {
   const query = adminSearch.value.trim().toLowerCase();
   const status = adminStatusFilter.value;
   const category = adminCategoryFilter.value;
+  const gender = adminGenderFilter.value;
   const selectedEvent = adminEventFilter.value;
   const haystack = [
     registration.first_name,
@@ -221,6 +230,7 @@ function registrationMatches(registration) {
     registration.guardian_email,
     registration.club_team,
     registration.city,
+    genderLabel(registration.gender),
     eventName(registration),
   ].join(" ").toLowerCase();
 
@@ -228,6 +238,7 @@ function registrationMatches(registration) {
   if (selectedEvent && eventKey(registration) !== selectedEvent) return false;
   if (status && registration.status !== status) return false;
   if (category && categoryCode(registration) !== category) return false;
+  if (gender && registration.gender !== gender) return false;
   if (minorOnlyFilter.checked && !registration.guardian_required) return false;
   if (proOnlyFilter.checked && categoryCode(registration) !== "PRO") return false;
   if (actionOnlyFilter.checked && !ACTION_STATUSES.has(registration.status)) return false;
@@ -284,7 +295,7 @@ function renderEventOptions() {
 function renderRegistrations() {
   const rows = filteredRegistrations();
   if (!rows.length) {
-    registrationsTable.innerHTML = '<tr><td colspan="11">Brak danych do wyświetlenia dla wybranych filtrów.</td></tr>';
+    registrationsTable.innerHTML = '<tr><td colspan="12">Brak danych do wyświetlenia dla wybranych filtrów.</td></tr>';
     return;
   }
 
@@ -296,6 +307,7 @@ function renderRegistrations() {
       <td>${escapeHtml(eventName(registration))}</td>
       <td><span class="status-chip status-${escapeHtml(registration.status)}">${escapeHtml(statusLabel(registration.status))}</span></td>
       <td>${escapeHtml(registration.birth_date || "-")}<br><small>${escapeHtml(ageAtEvent(registration))} lat</small></td>
+      <td>${escapeHtml(genderLabel(registration.gender))}</td>
       <td>${escapeHtml(registration.city || "-")}<br><small>${escapeHtml(registration.country || "")}</small></td>
       <td>${escapeHtml(registration.club_team || "-")}</td>
       <td><span>${escapeHtml(registration.email || "")}</span><br><span>${escapeHtml(registration.phone || "")}</span></td>
@@ -1117,7 +1129,7 @@ function openDetails(registration) {
           <p><strong>E-mail</strong><span>${escapeHtml(registration.email)}</span></p>
           <p><strong>Telefon</strong><span>${escapeHtml(registration.phone)}</span></p>
           <p><strong>Miasto / kraj</strong><span>${escapeHtml(registration.city || "-")} / ${escapeHtml(registration.country || "-")}</span></p>
-          <p><strong>Płeć</strong><span>${escapeHtml(registration.gender || "-")}</span></p>
+          <p><strong>Płeć</strong><span>${escapeHtml(genderLabel(registration.gender))}</span></p>
           <p><strong>Klub/team</strong><span>${escapeHtml(registration.club_team || "-")}</span></p>
         </div>
       </section>
@@ -1225,6 +1237,7 @@ async function exportCsv() {
   if (adminEventFilter.value) params.set("eventId", adminEventFilter.value);
   if (adminCategoryFilter.value) params.set("category", adminCategoryFilter.value);
   if (adminStatusFilter.value) params.set("status", adminStatusFilter.value);
+  if (adminGenderFilter.value) params.set("gender", adminGenderFilter.value);
   const query = params.toString();
 
   try {
@@ -1252,7 +1265,7 @@ logoutButton.addEventListener("click", () => {
   showLogin("Wylogowano.");
 });
 
-[adminSearch, adminEventFilter, adminStatusFilter, adminCategoryFilter, minorOnlyFilter, proOnlyFilter, actionOnlyFilter].forEach((control) => {
+[adminSearch, adminEventFilter, adminStatusFilter, adminCategoryFilter, adminGenderFilter, minorOnlyFilter, proOnlyFilter, actionOnlyFilter].forEach((control) => {
   control?.addEventListener("input", renderRegistrations);
   control?.addEventListener("change", renderRegistrations);
 });
