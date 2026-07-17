@@ -2364,10 +2364,41 @@ body.checkin-body {
   color: rgba(255, 255, 255, 0.7);
 }
 
+.partner-groups {
+  display: grid;
+  gap: clamp(26px, 4vw, 40px);
+}
+
+.partner-group {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.partner-group h3 {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 .partner-logo-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
+}
+
+.partner-group-organizer .partner-logo-grid {
+  grid-template-columns: minmax(0, min(420px, 100%));
+}
+
+.partner-group-host_cities .partner-logo-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.partner-group-sponsors .partner-logo-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .partner-logo-card {
@@ -2413,6 +2444,14 @@ body.checkin-body {
   place-items: center;
 }
 
+.partner-logo-organizer {
+  min-height: 154px;
+}
+
+.partner-logo-organizer .partner-logo-frame {
+  min-height: 104px;
+}
+
 .partner-logo-frame img {
   display: block;
   width: auto;
@@ -2420,6 +2459,19 @@ body.checkin-body {
   max-height: 70px;
   object-fit: contain;
   filter: grayscale(1) brightness(1.35);
+}
+
+.partner-logo-organizer img {
+  max-width: min(230px, 100%);
+  max-height: 88px;
+}
+
+.partner-logo-frame.has-logo .partner-logo-placeholder {
+  display: none;
+}
+
+.partner-logo-frame.has-logo.is-placeholder .partner-logo-placeholder {
+  display: grid;
 }
 
 .partner-logo-placeholder {
@@ -2843,7 +2895,8 @@ body.checkin-body {
     grid-template-columns: 1fr;
   }
 
-  .partner-logo-grid {
+  .partner-group-host_cities .partner-logo-grid,
+  .partner-group-sponsors .partner-logo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2982,8 +3035,13 @@ body.checkin-body {
     min-height: 108px;
   }
 
-  .partner-logo-grid {
+  .partner-group-organizer .partner-logo-grid,
+  .partner-group-host_cities .partner-logo-grid {
     grid-template-columns: 1fr;
+  }
+
+  .partner-group-sponsors .partner-logo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .partner-logo-card {
@@ -3025,5 +3083,11 @@ body.checkin-body {
   .registrations-table-wrap {
     margin-inline: -4px;
     width: calc(100% + 8px);
+  }
+}
+
+@media (max-width: 430px) {
+  .partner-group-sponsors .partner-logo-grid {
+    grid-template-columns: 1fr;
   }
 }

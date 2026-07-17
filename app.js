@@ -116,30 +116,73 @@ const fallbackConsents = [
   },
 ];
 
-const partnerLogos = [
+const partnerGroups = [
   {
-    name: "Partner główny",
-    logo: "",
-    url: "",
-    alt: "Logo partnera głównego BMX Series",
+    title: "Organizator",
+    type: "organizer",
+    items: [
+      {
+        name: "Fundacja Sportów Miejskich",
+        role: "organizer",
+        logo: "/assets/partners/fundacja-sportow-miejskich.svg",
+        alt: "Fundacja Sportów Miejskich",
+        url: "",
+      },
+    ],
   },
   {
-    name: "Sponsor wydarzenia",
-    logo: "",
-    url: "",
-    alt: "Logo sponsora wydarzenia BMX Series",
+    title: "Miasta gospodarze",
+    type: "host_cities",
+    items: [
+      {
+        name: "Gorzów Wielkopolski",
+        role: "host_city",
+        logo: "/assets/partners/gorzow-wielkopolski.svg",
+        alt: "Gorzów Wielkopolski",
+        url: "",
+      },
+      {
+        name: "Miasto i Gmina Bogatynia",
+        role: "host_city",
+        logo: "/assets/partners/bogatynia.svg",
+        alt: "Miasto i Gmina Bogatynia",
+        url: "",
+      },
+    ],
   },
   {
-    name: "Partner techniczny",
-    logo: "",
-    url: "",
-    alt: "Logo partnera technicznego BMX Series",
-  },
-  {
-    name: "Partner medialny",
-    logo: "",
-    url: "",
-    alt: "Logo partnera medialnego BMX Series",
+    title: "Sponsorzy i partnerzy",
+    type: "sponsors",
+    items: [
+      {
+        name: "JBL",
+        role: "sponsor",
+        logo: "/assets/partners/jbl.svg",
+        alt: "JBL",
+        url: "",
+      },
+      {
+        name: "Monster Energy",
+        role: "sponsor",
+        logo: "/assets/partners/monster-energy.svg",
+        alt: "Monster Energy",
+        url: "",
+      },
+      {
+        name: "Fox Racing",
+        role: "sponsor",
+        logo: "/assets/partners/fox-racing.svg",
+        alt: "Fox Racing",
+        url: "",
+      },
+      {
+        name: "RideHub",
+        role: "partner",
+        logo: "/assets/partners/ridehub.svg",
+        alt: "RideHub",
+        url: "",
+      },
+    ],
   },
 ];
 
@@ -538,29 +581,47 @@ function partnersSection() {
         <h2 id="partners-heading">Partnerzy i sponsorzy</h2>
         <p>Marki i instytucje wspierające rozwój zawodów BMX Freestyle w Polsce.</p>
       </div>
-      <div class="partner-logo-grid">
-        ${partnerLogos.map(partnerLogoCard).join("")}
+      <div class="partner-groups">
+        ${partnerGroups.map(partnerGroup).join("")}
       </div>
     </section>
   `;
 }
 
-function partnerLogoCard(partner) {
-  const logo = partner.logo
-    ? `<img src="${escapeHtml(partner.logo)}" alt="${escapeHtml(partner.alt || partner.name)}" loading="lazy">`
-    : `<span class="partner-logo-placeholder">${escapeHtml(partner.name)}</span>`;
+function partnerGroup(group) {
+  return `
+    <div class="partner-group partner-group-${escapeHtml(group.type)}">
+      <h3>${escapeHtml(group.title)}</h3>
+      <div class="partner-logo-grid">
+        ${group.items.map((partner) => partnerLogoCard(partner, group.type)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function partnerLogoCard(partner, groupType) {
+  const logo = partner.logo ? `
+    <img
+      src="${escapeHtml(partner.logo)}"
+      alt="${escapeHtml(partner.alt || partner.name)}"
+      loading="lazy"
+      onerror="this.closest('.partner-logo-frame').classList.add('is-placeholder'); this.remove();"
+    >
+  ` : "";
   const content = `
-    <span class="partner-logo-frame">
+    <span class="partner-logo-frame ${partner.logo ? "has-logo" : "is-placeholder"}">
       ${logo}
+      <span class="partner-logo-placeholder">${escapeHtml(partner.name)}</span>
     </span>
   `;
+  const cardClass = `partner-logo-card partner-logo-${escapeHtml(groupType)} partner-role-${escapeHtml(partner.role)}`;
 
   if (!partner.url) {
-    return `<article class="partner-logo-card">${content}</article>`;
+    return `<article class="${cardClass}">${content}</article>`;
   }
 
   return `
-    <a class="partner-logo-card" href="${escapeHtml(partner.url)}" target="_blank" rel="noopener noreferrer">
+    <a class="${cardClass}" href="${escapeHtml(partner.url)}" target="_blank" rel="noopener noreferrer">
       ${content}
     </a>
   `;
