@@ -116,6 +116,33 @@ const fallbackConsents = [
   },
 ];
 
+const partnerLogos = [
+  {
+    name: "Partner główny",
+    logo: "",
+    url: "",
+    alt: "Logo partnera głównego BMX Series",
+  },
+  {
+    name: "Sponsor wydarzenia",
+    logo: "",
+    url: "",
+    alt: "Logo sponsora wydarzenia BMX Series",
+  },
+  {
+    name: "Partner techniczny",
+    logo: "",
+    url: "",
+    alt: "Logo partnera technicznego BMX Series",
+  },
+  {
+    name: "Partner medialny",
+    logo: "",
+    url: "",
+    alt: "Logo partnera medialnego BMX Series",
+  },
+];
+
 const faqItems = [
   {
     id: "pro-license",
@@ -496,9 +523,47 @@ async function renderHome() {
       ${SHOW_HOMEPAGE_FLOW ? homepageFlowSection() : ""}
       ${SHOW_HOMEPAGE_CATEGORIES ? homepageCategoriesSection() : ""}
       ${faqSection({ home: true })}
+      <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
+      ${partnersSection()}
     </div>
   `;
   setupFastSignup({ events: visibleEvents, initialCategories: selectedCategories });
+}
+
+function partnersSection() {
+  return `
+    <section class="section partners-section" aria-labelledby="partners-heading">
+      <div class="section-heading">
+        <p class="eyebrow">BMX Series</p>
+        <h2 id="partners-heading">Partnerzy i sponsorzy</h2>
+        <p>Marki i instytucje wspierające rozwój zawodów BMX Freestyle w Polsce.</p>
+      </div>
+      <div class="partner-logo-grid">
+        ${partnerLogos.map(partnerLogoCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function partnerLogoCard(partner) {
+  const logo = partner.logo
+    ? `<img src="${escapeHtml(partner.logo)}" alt="${escapeHtml(partner.alt || partner.name)}" loading="lazy">`
+    : `<span class="partner-logo-placeholder">${escapeHtml(partner.name)}</span>`;
+  const content = `
+    <span class="partner-logo-frame">
+      ${logo}
+    </span>
+  `;
+
+  if (!partner.url) {
+    return `<article class="partner-logo-card">${content}</article>`;
+  }
+
+  return `
+    <a class="partner-logo-card" href="${escapeHtml(partner.url)}" target="_blank" rel="noopener noreferrer">
+      ${content}
+    </a>
+  `;
 }
 
 function homepageEventsSection(events) {
@@ -680,7 +745,7 @@ async function renderEvents() {
       <div class="section-heading">
         <p class="eyebrow">Kalendarz</p>
         <h1>Zawody</h1>
-        <p>Aktualne wydarzenia BMX Freestyle Polska, status zapisów i szybkie przejście do rejestracji.</p>
+        <p>Aktualne wydarzenia BMX Series, status zapisów i szybkie przejście do rejestracji.</p>
       </div>
     </section>
     <section class="section section-tight">
@@ -1189,7 +1254,7 @@ async function renderConfirmationPlaceholder() {
   const confirmation = payload.confirmation;
   app.innerHTML = `
     <section class="placeholder-page confirmation-page">
-      <p class="eyebrow">BMX Freestyle Polska</p>
+      <p class="eyebrow">BMX Series</p>
       <h1>Potwierdzenie zgłoszenia</h1>
       <span class="status-chip status-${escapeHtml(confirmation.status.code)}">${escapeHtml(confirmation.status.label)}</span>
       <div class="confirmation-card">
@@ -1575,7 +1640,7 @@ function renderResults() {
     <section class="placeholder-page">
       <p class="eyebrow">Przyszły moduł</p>
       <h1>Wyniki</h1>
-      <p>Wyniki i rankingi pojawią się w kolejnych etapach rozwoju systemu BMX Freestyle Polska.</p>
+      <p>Wyniki i rankingi pojawią się w kolejnych etapach rozwoju systemu BMX Series.</p>
     </section>
   `;
 }
