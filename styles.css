@@ -1316,18 +1316,39 @@ body.checkin-body {
 
 .hero {
   background: #050607;
-  min-height: min(760px, 80vh);
 }
 
 .home-hero {
   width: 100%;
-  background:
-    #050607
-    url("/assets/hero-puchar-polski-desktop.png") center / cover no-repeat;
+}
+
+.image-hero {
+  display: block;
+  min-height: 0;
+  max-height: none;
+  background: #050607;
+  overflow: hidden;
+}
+
+.image-hero picture,
+.image-hero img {
+  display: block;
+  width: 100%;
+}
+
+.image-hero img {
+  position: static;
+  height: auto;
+  object-fit: contain;
+  filter: none;
 }
 
 .hero img {
   filter: saturate(0.9) contrast(1.12) brightness(0.65);
+}
+
+.image-hero img {
+  filter: none;
 }
 
 .page-hero::before,
@@ -1850,6 +1871,13 @@ body.checkin-body {
   }
 }
 
+@media (max-width: 768px) {
+  .image-hero img {
+    width: 100%;
+    height: auto;
+  }
+}
+
 @media (max-width: 620px) {
   body {
     background:
@@ -1861,14 +1889,7 @@ body.checkin-body {
   }
 
   .hero {
-    min-height: 680px;
-    background-position: 58% center;
-  }
-
-  .home-hero {
-    min-height: 620px;
-    background-size: 620px auto;
-    background-position: left top;
+    min-height: 0;
   }
 
   .hero::before {

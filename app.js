@@ -250,8 +250,11 @@ async function renderHome() {
   const events = await loadEvents();
   const visibleEvents = events.length ? events : [fallbackEvent];
   app.innerHTML = `
-    <section class="hero home-hero" aria-label="Puchar Polski BMX Freestyle">
-      <span class="sr-only">Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce.</span>
+    <section class="hero home-hero image-hero" aria-label="Puchar Polski BMX Freestyle">
+      <picture>
+        <source media="(max-width: 768px)" srcset="/assets/hero-puchar-polski-mobile.png">
+        <img src="/assets/hero-puchar-polski-desktop.png" alt="Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce.">
+      </picture>
     </section>
     <section class="section action-section">
       <div class="section-heading">
