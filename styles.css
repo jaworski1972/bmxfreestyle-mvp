@@ -1696,7 +1696,8 @@ body.checkin-body {
   z-index: 1;
   display: grid;
   gap: clamp(24px, 4vw, 42px);
-  width: min(1180px, 100%);
+  width: min(1240px, 100%);
+  max-width: 1240px;
   margin: 0 auto;
   padding: clamp(22px, 4vw, 42px);
   background: rgba(5, 5, 5, 0.74);
@@ -1720,6 +1721,8 @@ body.checkin-body {
 
 .fast-signup-header h2 {
   color: var(--white);
+  font-size: clamp(2.8rem, 5vw, 5.2rem);
+  line-height: 0.95;
 }
 
 .fast-signup-header p {
@@ -1737,8 +1740,8 @@ body.checkin-body {
 
 .fast-signup-flow {
   display: grid;
-  grid-template-columns: minmax(220px, 0.85fr) minmax(360px, 1.4fr) minmax(220px, 0.75fr);
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 20px;
   align-items: stretch;
 }
 
@@ -1799,7 +1802,7 @@ body.checkin-body {
 .fast-category-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 20px;
 }
 
 .fast-category-tile {
@@ -1814,10 +1817,13 @@ body.checkin-body {
 }
 
 .fast-category-tile span {
-  display: grid;
-  gap: 8px;
-  min-height: 132px;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 180px;
+  padding: 24px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   background: rgba(3, 4, 5, 0.72);
@@ -1833,12 +1839,13 @@ body.checkin-body {
 }
 
 .fast-category-tile strong {
-  font-size: clamp(1.45rem, 3vw, 2.2rem);
+  font-size: clamp(1.65rem, 2.4vw, 2.4rem);
   line-height: 1;
 }
 
 .fast-category-tile small {
   color: rgba(255, 255, 255, 0.66);
+  font-size: 0.95rem;
   line-height: 1.38;
 }
 
@@ -2200,6 +2207,28 @@ body.checkin-body {
 .notice {
   background: var(--lime-soft);
   border-color: rgba(105, 189, 0, 0.45);
+}
+
+@media (min-width: 1024px) {
+  .fast-signup-flow {
+    grid-template-columns: 1.35fr 0.9fr;
+    grid-template-areas:
+      "event submit"
+      "category category";
+    gap: 24px;
+  }
+
+  .fast-signup-step:first-child {
+    grid-area: event;
+  }
+
+  .fast-category-step {
+    grid-area: category;
+  }
+
+  .fast-submit-step {
+    grid-area: submit;
+  }
 }
 
 @media (max-width: 980px) {

@@ -312,6 +312,12 @@ async function renderHome() {
 }
 
 function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCode(categories)) {
+  const shortDescriptions = {
+    PRO: "Dla zawodników z UCI ID / numerem licencji.",
+    AMATOR: "Dla zawodników bez licencji.",
+    JUNIOR: "Dla młodszych zawodników.",
+  };
+
   return categories.map((category) => {
     const code = String(category.code || "").toUpperCase();
     return `
@@ -319,7 +325,7 @@ function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCod
         <input type="radio" name="fastCategory" value="${escapeHtml(code)}" ${code === selectedCode ? "checked" : ""} />
         <span>
           <strong>${escapeHtml(code)}</strong>
-          <small>${escapeHtml(category.description || "")}</small>
+          <small>${escapeHtml(shortDescriptions[code] || category.description || "")}</small>
         </span>
       </label>
     `;
