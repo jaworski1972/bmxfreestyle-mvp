@@ -259,23 +259,27 @@ async function renderHome() {
     <section class="section action-section">
       <div class="section-heading">
         <p class="eyebrow">Start</p>
-        <h2>Wybierz, co chcesz zrobić</h2>
+        <h2>Co chcesz zrobić?</h2>
+        <p>Wybierz najkrótszą ścieżkę do zapisów, kalendarza albo zasad startu.</p>
       </div>
       <div class="action-grid">
         <article class="action-card">
+          <span class="action-number">01</span>
           <h3>Zapisz się na zawody</h3>
           <p>Wybierz wydarzenie i wypełnij formularz zgłoszeniowy.</p>
           <a class="primary-btn" href="/zawody" data-link>Przejdź do zapisów</a>
         </article>
         <article class="action-card">
+          <span class="action-number">02</span>
           <h3>Sprawdź kalendarz</h3>
           <p>Zobacz aktualne rundy, lokalizacje i status zapisów.</p>
           <a class="secondary-btn" href="/zawody" data-link>Zobacz zawody</a>
         </article>
         <article class="action-card">
-          <h3>Panel organizatora</h3>
-          <p>Logowanie do zgłoszeń, check-inu i list startowych.</p>
-          <a class="secondary-btn" href="/admin">Przejdź do panelu</a>
+          <span class="action-number">03</span>
+          <h3>Sprawdź zasady startu</h3>
+          <p>Dowiedz się, jak działają kategorie PRO, AMATOR i JUNIOR oraz jakie zgody są wymagane.</p>
+          <a class="secondary-btn" href="/regulamin" data-link>Zobacz regulamin</a>
         </article>
       </div>
     </section>
