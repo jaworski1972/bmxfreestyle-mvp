@@ -673,6 +673,15 @@ function categoryShortDescription(code) {
   return descriptions[String(code || "").toUpperCase()] || "Wybierz tę kategorię, jeśli jest właściwa dla zawodnika.";
 }
 
+function categoryCapacityLabel(category = {}) {
+  if (category.capacityLabel) return category.capacityLabel;
+  if (category.capacity === null || category.capacity === undefined || category.capacity === "") return "Brak limitu miejsc";
+  const occupied = Number(category.occupiedCount || 0);
+  const capacity = Number(category.capacity);
+  const suffix = occupied >= capacity ? " — lista rezerwowa" : "";
+  return `${occupied} / ${capacity} miejsc zajętych${suffix}`;
+}
+
 function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCode(categories)) {
   return categories.map((category) => {
     const code = String(category.code || "").toUpperCase();
@@ -682,6 +691,7 @@ function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCod
         <span>
           <strong>${escapeHtml(categoryLabel(code))}</strong>
           <small>${escapeHtml(categoryShortDescription(code))}</small>
+          <em>${escapeHtml(categoryCapacityLabel(category))}</em>
         </span>
       </label>
     `;
@@ -907,6 +917,7 @@ async function renderSignupPlaceholder(slug) {
                   <span>
                     <strong>${escapeHtml(categoryLabel(code))}</strong>
                     <small>${escapeHtml(categoryShortDescription(code))}</small>
+                    <em>${escapeHtml(categoryCapacityLabel(category))}</em>
                     <em>${isLicenseRequired(category) ? "Licencja wymagana" : "Walidacja wieku"}</em>
                   </span>
                 </label>
@@ -1234,6 +1245,13 @@ function setupRegistrationForm({ event, categories, consents }) {
       }
 
       const state = formState();
+      const waitlist = payload.status === "waitlist" || payload.registration?.status === "waitlist";
+      const statusText = waitlist
+        ? "lista rezerwowa"
+        : "oczekuje na weryfikację organizatora";
+      const statusNotice = waitlist
+        ? "Limit miejsc w tej kategorii został wyczerpany. Zgłoszenie zostało dodane do listy rezerwowej."
+        : "Status: oczekuje na weryfikację organizatora. Nie jest to jeszcze automatyczna akceptacja startu.";
       const confirmationLink = payload.registration?.confirmation_token
         ? `/potwierdz?token=${encodeURIComponent(payload.registration.confirmation_token)}`
         : "";
@@ -1242,9 +1260,9 @@ function setupRegistrationForm({ event, categories, consents }) {
           <div class="success-mark" aria-hidden="true">✓</div>
           <p class="eyebrow">Zgłoszenie wysłane</p>
           <h1>Zgłoszenie przyjęte do systemu</h1>
-          <p>Zgłoszenie zawodnika ${escapeHtml(form.elements.firstName.value)} ${escapeHtml(form.elements.lastName.value)} zostało zapisane i czeka na decyzję organizatora.</p>
+          <p>Zgłoszenie zawodnika ${escapeHtml(form.elements.firstName.value)} ${escapeHtml(form.elements.lastName.value)} zostało zapisane. Aktualny status: <strong>${escapeHtml(statusText)}</strong>.</p>
           <div class="notice">
-            Status: oczekuje na weryfikację organizatora. Nie jest to jeszcze automatyczna akceptacja startu.
+            ${escapeHtml(payload.message || statusNotice)}
           </div>
           <div class="success-info">
             <p>Potwierdzenie zostało wysłane e-mailem.</p>

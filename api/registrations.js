@@ -2,10 +2,39 @@ const { getSupabase, json, readBody } = require("../lib/supabase");
 const { requireAdmin } = require("../lib/admin-auth");
 const { confirmationUrl, sendStatusChangedEmail } = require("../lib/mail");
 const { enabled, sendSmsNotification } = require("../lib/sms");
+const { CATEGORY_FULL_STATUS_MESSAGE, statusOccupiesCapacity } = require("../lib/registration-limits");
 
 const STATUS_VALUES = new Set(["pending_review", "accepted", "needs_info", "rejected", "waitlist"]);
 
-const REGISTRATION_SELECT = "*, events(name,slug,city,venue,starts_at,ends_at), event_categories(code,name,requires_license,age_max)";
+const REGISTRATION_SELECT = "*, events(name,slug,city,venue,starts_at,ends_at), event_categories(code,name,requires_license,age_max,capacity)";
+
+function isMissingStatusRpc(error) {
+  const message = String(error?.message || "");
+  return message.includes("update_registration_status_with_limits") && (
+    message.includes("not exist")
+    || message.includes("Could not find")
+    || message.includes("schema cache")
+  );
+}
+
+async function ensureStatusCapacity(supabase, registration, nextStatus) {
+  if (!statusOccupiesCapacity(nextStatus) || statusOccupiesCapacity(registration.status)) return null;
+  const capacity = registration.event_categories?.capacity;
+  if (capacity === null || capacity === undefined || capacity === "") return null;
+
+  const { count, error } = await supabase
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", registration.category_id)
+    .neq("id", registration.id)
+    .in("status", ["pending_review", "accepted", "needs_info"]);
+  if (error) throw error;
+
+  if ((count || 0) >= Number(capacity)) {
+    return CATEGORY_FULL_STATUS_MESSAGE;
+  }
+  return null;
+}
 
 module.exports = async function handler(request, response) {
   try {
@@ -48,21 +77,51 @@ module.exports = async function handler(request, response) {
 
       const { data: previousRegistration, error: previousError } = await supabase
         .from("registrations")
-        .select("id,status")
+        .select("id,status,category_id,event_categories(capacity)")
         .eq("id", id)
         .single();
 
       if (previousError) throw previousError;
 
+      const statusNote = String(body.statusNote || "").trim() || null;
+      const { data: rpcData, error: rpcError } = await supabase.rpc("update_registration_status_with_limits", {
+        registration_id_input: id,
+        status_input: status,
+        status_note_input: statusNote,
+      });
+
+      if (rpcError && !isMissingStatusRpc(rpcError)) throw rpcError;
+
+      if (!rpcError && rpcData?.ok === false) {
+        json(response, rpcData.code === "category_full" ? 409 : 400, {
+          ok: false,
+          code: rpcData.code || "status_rejected",
+          error: rpcData.error || CATEGORY_FULL_STATUS_MESSAGE,
+        });
+        return;
+      }
+
+      if (rpcError) {
+        const capacityError = await ensureStatusCapacity(supabase, previousRegistration, status);
+        if (capacityError) {
+          json(response, 409, { ok: false, code: "category_full", error: capacityError });
+          return;
+        }
+        const { error: updateError } = await supabase
+          .from("registrations")
+          .update({
+            status,
+            status_note: statusNote,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", id);
+        if (updateError) throw updateError;
+      }
+
       const { data, error } = await supabase
         .from("registrations")
-        .update({
-          status,
-          status_note: String(body.statusNote || "").trim() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
         .select(REGISTRATION_SELECT)
+        .eq("id", id)
         .single();
 
       if (error) throw error;

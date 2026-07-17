@@ -840,7 +840,7 @@ function renderCategoriesManagement() {
   categoriesList.innerHTML = categoriesState.length ? categoriesState.map((category) => `
     <button class="management-item" type="button" data-category-id="${escapeHtml(category.id)}">
       <strong>${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name)}</strong>
-      <span><mark>${category.isActive ? "Aktywna" : "Nieaktywna"}</mark> · limit: ${escapeHtml(category.capacity ?? "-")} · sort: ${escapeHtml(category.sortOrder ?? 0)}</span>
+      <span><mark>${category.isActive ? "Aktywna" : "Nieaktywna"}</mark> · ${escapeHtml(category.capacityLabel || `limit: ${category.capacity ?? "-"}`)} · rezerwowa: ${escapeHtml(category.waitlistCount ?? 0)} · sort: ${escapeHtml(category.sortOrder ?? 0)}</span>
       <small>${category.requiresLicense ? "Wymaga licencji" : "Walidacja wieku"} · zakres wieku: ${escapeHtml(category.ageMin ?? "-")} - ${escapeHtml(category.ageMax ?? "-")}</small>
     </button>
   `).join("") : '<p class="form-message">Brak danych do wyświetlenia dla tego wydarzenia.</p>';

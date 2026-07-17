@@ -81,9 +81,9 @@ select
 from upserted_event
 cross join (
   values
-    ('PRO', 'PRO', 'Kategoria dla zawodników z licencją PZKol, UCI lub federacji krajowej.', 1, 40, 16, null, true),
-    ('AMATOR', 'AMATOR', 'Otwarta kategoria dla zawodników bez licencji.', 2, 50, 16, null, false),
-    ('JUNIOR', 'JUNIOR', 'Kategoria dla młodszych zawodników. Granica wieku wynika z ustawień wydarzenia.', 3, 30, null, 15, false)
+    ('PRO', 'PRO', 'Kategoria dla zawodników z UCI ID / numerem licencji.', 1, null, 16, null, true),
+    ('AMATOR', 'AMATOR', 'Otwarta kategoria dla zawodników bez licencji.', 2, 30, 15, null, false),
+    ('JUNIOR', 'JUNIOR', 'Kategoria JUNIOR U15 dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat.', 3, 20, null, 15, false)
 ) as category(code, name, description, sort_order, capacity, age_min, age_max, requires_license)
 on conflict (event_id, code, gender_scope) do update set
   name = excluded.name,

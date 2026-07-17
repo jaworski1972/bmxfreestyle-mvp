@@ -60,7 +60,7 @@ module.exports = async function handler(request, response) {
     const invalid = registrations.find((registration) => (
       registration.event_id !== eventId
       || registration.category_id !== categoryId
-      || !["accepted", "waitlist"].includes(registration.status)
+      || registration.status !== "accepted"
     ));
     if (invalid) {
       json(response, 409, { ok: false, error: "Lista zawiera zawodnika spoza wybranego wydarzenia lub kategorii." });

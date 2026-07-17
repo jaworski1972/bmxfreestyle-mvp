@@ -58,6 +58,7 @@ create table if not exists public.registrations (
   bib_number text null,
   confirmation_token uuid not null default gen_random_uuid(),
   confirmed_at timestamptz null,
+  athlete_identity_key text null,
   first_name text not null,
   last_name text not null,
   birth_date date not null,
@@ -145,6 +146,7 @@ create index if not exists registrations_status_idx on public.registrations(stat
 create index if not exists registrations_checkin_idx on public.registrations(event_id, category_id, checkin_status);
 create index if not exists registrations_start_order_idx on public.registrations(event_id, category_id, start_order);
 create index if not exists registrations_email_idx on public.registrations(email);
+create index if not exists registrations_athlete_identity_key_idx on public.registrations(event_id, athlete_identity_key);
 create index if not exists registrations_created_at_idx on public.registrations(created_at desc);
 create unique index if not exists registrations_confirmation_token_idx on public.registrations(confirmation_token);
 create index if not exists event_consents_event_id_idx on public.event_consents(event_id);

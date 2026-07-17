@@ -3,6 +3,13 @@ const { cleanText, getSupabase, json, readBody } = require("../lib/supabase");
 const { normalizePolishPhone } = require("../lib/phone-normalization");
 const { confirmationUrl, sendRegistrationReceivedEmail } = require("../lib/mail");
 const { enabled, sendSmsNotification } = require("../lib/sms");
+const {
+  ACCEPTED_REGISTRATION_MESSAGE,
+  DUPLICATE_REGISTRATION_MESSAGE,
+  WAITLIST_REGISTRATION_MESSAGE,
+  duplicateIdentityMatches,
+  statusForCapacity,
+} = require("../lib/registration-limits");
 
 function requiredString(body, key) {
   return cleanText(body[key], 220);
@@ -152,24 +159,94 @@ async function fetchConsents(supabase, eventId) {
 async function findDuplicate(supabase, eventId, payload) {
   const { data, error } = await supabase
     .from("registrations")
-    .select("id,email,phone,first_name,last_name,birth_date,status")
+    .select("id,first_name,last_name,birth_date,status")
     .eq("event_id", eventId)
     .eq("birth_date", payload.birth_date)
     .limit(50);
 
   if (error) throw error;
 
-  const firstName = payload.first_name.toLowerCase();
-  const lastName = payload.last_name.toLowerCase();
-  return (data || []).find((registration) => (
-    String(registration.first_name || "").trim().toLowerCase() === firstName
-    && String(registration.last_name || "").trim().toLowerCase() === lastName
-    && (
-      normalizeEmail(registration.email) === normalizeEmail(payload.email)
-      || String(registration.phone || "") === String(payload.phone || "")
-    )
-    && !["rejected"].includes(registration.status)
-  )) || null;
+  return (data || []).find((registration) => duplicateIdentityMatches(registration, payload)) || null;
+}
+
+async function occupiedCountForCategory(supabase, categoryId) {
+  const { count, error } = await supabase
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", categoryId)
+    .in("status", ["pending_review", "accepted", "needs_info"]);
+  if (error) throw error;
+  return count || 0;
+}
+
+function isMissingRpc(error) {
+  const message = String(error?.message || "");
+  return message.includes("create_registration_with_limits") && (
+    message.includes("not exist")
+    || message.includes("Could not find")
+    || message.includes("schema cache")
+  );
+}
+
+function rpcRegistrationResult(result) {
+  const payload = Array.isArray(result) ? result[0] : result;
+  if (!payload || typeof payload !== "object") return null;
+  return payload;
+}
+
+async function insertRegistrationWithFallback(supabase, { registration, event, category }) {
+  const { data: rpcData, error: rpcError } = await supabase.rpc("create_registration_with_limits", {
+    registration_payload: registration,
+  });
+
+  if (rpcError && !isMissingRpc(rpcError)) throw rpcError;
+
+  if (!rpcError) {
+    const result = rpcRegistrationResult(rpcData);
+    if (!result?.ok) {
+      return {
+        ok: false,
+        httpStatus: result?.code === "duplicate_registration" ? 409 : 400,
+        code: result?.code || "registration_rejected",
+        error: result?.error || "Nie udało się zapisać zgłoszenia.",
+      };
+    }
+    return {
+      ok: true,
+      data: {
+        id: result.id,
+        status: result.status,
+        confirmation_token: result.confirmation_token,
+        created_at: result.created_at,
+      },
+      message: result.message,
+    };
+  }
+
+  const duplicate = await findDuplicate(supabase, event.id, registration);
+  if (duplicate) {
+    return {
+      ok: false,
+      httpStatus: 409,
+      code: "duplicate_registration",
+      error: DUPLICATE_REGISTRATION_MESSAGE,
+      duplicateId: duplicate.id,
+    };
+  }
+
+  const capacityDecision = statusForCapacity(category, await occupiedCountForCategory(supabase, category.id));
+  const { data, error } = await supabase
+    .from("registrations")
+    .insert({ ...registration, status: capacityDecision.status })
+    .select("id,status,confirmation_token,created_at")
+    .single();
+
+  if (error) throw error;
+  return {
+    ok: true,
+    data,
+    message: capacityDecision.message,
+  };
 }
 
 module.exports = async function handler(request, response) {
@@ -342,40 +419,36 @@ module.exports = async function handler(request, response) {
       source: "public",
     };
 
-    const duplicate = await findDuplicate(supabase, event.id, registration);
-    if (duplicate) {
-      json(response, 409, {
+    const insertResult = await insertRegistrationWithFallback(supabase, { registration, event, category });
+    if (!insertResult.ok) {
+      json(response, insertResult.httpStatus || 400, {
         ok: false,
-        code: "duplicate_registration",
-        error: "Wygląda na to, że takie zgłoszenie zostało już wysłane na to wydarzenie.",
-        duplicateId: duplicate.id,
+        code: insertResult.code,
+        error: insertResult.error,
+        duplicateId: insertResult.duplicateId,
       });
       return;
     }
 
-    const { data, error } = await supabase
-      .from("registrations")
-      .insert(registration)
-      .select("id,status,confirmation_token,created_at")
-      .single();
-
-    if (error) throw error;
+    const data = insertResult.data;
+    const finalRegistration = { ...registration, status: data.status };
 
     let email = { sent: false, skipped: true };
     try {
       email = await sendRegistrationReceivedEmail({
         event,
         category,
-        registration: { ...registration, id: data.id },
+        registration: { ...finalRegistration, id: data.id, confirmation_token: data.confirmation_token },
       });
     } catch (emailError) {
       console.error("BMX Freestyle registration email failed", emailError);
       email = { sent: false, skipped: true, error: emailError.message };
     }
 
-    const storedRegistration = { ...registration, id: data.id, confirmation_token: data.confirmation_token };
+    const storedRegistration = { ...finalRegistration, id: data.id, confirmation_token: data.confirmation_token };
     const confirmUrl = confirmationUrl(data.confirmation_token);
-    const smsMessage = `BMX Series: zgłoszenie przyjęte do systemu. Status: oczekuje na weryfikację. Potwierdzenie i QR: ${confirmUrl}`;
+    const smsStatus = data.status === "waitlist" ? "lista rezerwowa" : "oczekuje na weryfikację";
+    const smsMessage = `BMX Series: zgłoszenie przyjęte do systemu. Status: ${smsStatus}. Potwierdzenie i QR: ${confirmUrl}`;
     const sms = await sendSmsNotification({
       supabase,
       event,
@@ -391,7 +464,9 @@ module.exports = async function handler(request, response) {
       status: data.status,
       email,
       sms,
-      message: "Zgłoszenie zostało przyjęte do systemu i oczekuje na weryfikację organizatora.",
+      message: data.status === "waitlist"
+        ? (insertResult.message || WAITLIST_REGISTRATION_MESSAGE)
+        : (insertResult.message || ACCEPTED_REGISTRATION_MESSAGE),
     });
   } catch (error) {
     json(response, 500, { ok: false, error: error.message || "Nie udało się zapisać zgłoszenia." });

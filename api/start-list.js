@@ -16,7 +16,6 @@ module.exports = async function handler(request, response) {
 
     const eventId = String(request.query?.eventId || "").trim();
     const categoryId = String(request.query?.categoryId || "").trim();
-    const includeWaitlist = String(request.query?.includeWaitlist || "").toLowerCase() === "true";
 
     if (!eventId || !categoryId) {
       json(response, 400, { ok: false, error: "Wybierz wydarzenie i kategorię." });
@@ -31,7 +30,7 @@ module.exports = async function handler(request, response) {
       .order("start_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true });
 
-    query = includeWaitlist ? query.in("status", ["accepted", "waitlist"]) : query.eq("status", "accepted");
+    query = query.eq("status", "accepted");
 
     const { data, error } = await query;
     if (error) throw error;

@@ -38,8 +38,8 @@ module.exports = async function handler(request, response) {
       .single();
 
     if (currentError) throw currentError;
-    if (!["accepted", "waitlist"].includes(current.status)) {
-      json(response, 409, { ok: false, error: "Check-in jest dostępny tylko dla zaakceptowanych lub rezerwowych zgłoszeń." });
+    if (current.status !== "accepted") {
+      json(response, 409, { ok: false, error: "Check-in jest dostępny tylko dla zaakceptowanych zgłoszeń." });
       return;
     }
 
