@@ -121,8 +121,12 @@ function categoryCode(registration) {
   return registration.event_categories?.code || registration.category?.code || "";
 }
 
+function categoryLabel(code) {
+  return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
+}
+
 function categoryName(registration) {
-  return registration.event_categories?.name || categoryCode(registration);
+  return categoryLabel(registration.event_categories?.code || registration.category?.code || registration.event_categories?.name || "");
 }
 
 function eventData(registration) {
@@ -255,7 +259,7 @@ function renderDashboard() {
     ["Rezerwowa", counts.waitlist],
     ["PRO", counts.pro],
     ["AMATOR", counts.amator],
-    ["JUNIOR", counts.junior],
+    ["JUNIOR U15", counts.junior],
     ["Niepełnoletni", counts.minors],
   ].map(([label, value]) => `
     <article class="dashboard-tile">
@@ -288,7 +292,7 @@ function renderRegistrations() {
     <tr>
       <td>${escapeHtml(formatDate(registration.created_at))}</td>
       <td><strong>${escapeHtml(registration.first_name)} ${escapeHtml(registration.last_name)}</strong></td>
-      <td>${escapeHtml(categoryCode(registration))}</td>
+      <td>${escapeHtml(categoryLabel(categoryCode(registration)))}</td>
       <td>${escapeHtml(eventName(registration))}</td>
       <td><span class="status-chip status-${escapeHtml(registration.status)}">${escapeHtml(statusLabel(registration.status))}</span></td>
       <td>${escapeHtml(registration.birth_date || "-")}<br><small>${escapeHtml(ageAtEvent(registration))} lat</small></td>
@@ -396,7 +400,7 @@ async function loadStartListCategories() {
   startListCategoriesState = payload.categories || [];
   const selected = startListCategorySelect.value;
   startListCategorySelect.innerHTML = startListCategoriesState
-    .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.code)} · ${escapeHtml(category.name)}</option>`)
+    .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name)}</option>`)
     .join("");
   if (startListCategoriesState.some((category) => category.id === selected)) startListCategorySelect.value = selected;
   else if (startListCategoriesState[0]) startListCategorySelect.value = startListCategoriesState[0].id;
@@ -451,7 +455,7 @@ function renderStartList() {
     <tr>
       <td><input class="compact-input" type="number" min="1" inputmode="numeric" value="${escapeHtml(registration.startOrder || "")}" data-start-order-id="${escapeHtml(registration.id)}" aria-label="Kolejność startowa ${escapeHtml(registration.fullName)}" /></td>
       <td><input class="compact-input" value="${escapeHtml(registration.bibNumber || "")}" data-bib-id="${escapeHtml(registration.id)}" aria-label="Numer startowy ${escapeHtml(registration.fullName)}" /></td>
-      <td><strong>${escapeHtml(registration.fullName)}</strong><br><small>${escapeHtml(registration.birthDate || "-")} · ${escapeHtml(registration.age || "-")} lat · ${escapeHtml(registration.category?.code || "")}</small></td>
+      <td><strong>${escapeHtml(registration.fullName)}</strong><br><small>${escapeHtml(registration.birthDate || "-")} · ${escapeHtml(registration.age || "-")} lat · ${escapeHtml(categoryLabel(registration.category?.code))}</small></td>
       <td>${escapeHtml(registration.city || "-")}<br><small>${escapeHtml(registration.country || "")}</small></td>
       <td>${escapeHtml(registration.clubTeam || "-")}</td>
       <td><span class="status-chip checkin-${escapeHtml(registration.checkinStatus || "not_checked_in")}">${escapeHtml(checkinLabel(registration.checkinStatus))}</span></td>
@@ -584,14 +588,14 @@ function renderSmsRecipients() {
   const recipientRows = smsRecipientsState.slice(0, 60).map((recipient) => `
     <div class="sms-recipient-row">
       <strong>${escapeHtml(recipient.recipientName || "-")}</strong>
-      <span>${escapeHtml(recipient.categoryCode || "-")} · ${escapeHtml(statusLabel(recipient.registrationStatus))} · ${escapeHtml(checkinLabel(recipient.checkinStatus))}</span>
+      <span>${escapeHtml(categoryLabel(recipient.categoryCode) || "-")} · ${escapeHtml(statusLabel(recipient.registrationStatus))} · ${escapeHtml(checkinLabel(recipient.checkinStatus))}</span>
       <small>${escapeHtml(recipient.recipientPhone || "-")} · ${recipient.recipientType === "guardian" ? "opiekun" : "zawodnik"}${recipient.fallbackToAthlete ? " · fallback na telefon zawodnika" : ""}</small>
     </div>
   `).join("");
   const skippedRows = smsSkippedState.slice(0, 20).map((recipient) => `
     <div class="sms-recipient-row is-skipped">
       <strong>${escapeHtml(recipient.recipientName || "-")}</strong>
-      <span>${escapeHtml(recipient.categoryCode || "-")} · ${escapeHtml(statusLabel(recipient.registrationStatus))} · ${escapeHtml(checkinLabel(recipient.checkinStatus))}</span>
+      <span>${escapeHtml(categoryLabel(recipient.categoryCode) || "-")} · ${escapeHtml(statusLabel(recipient.registrationStatus))} · ${escapeHtml(checkinLabel(recipient.checkinStatus))}</span>
       <small>${escapeHtml(skippedReasonLabel(recipient.skippedReason))}</small>
     </div>
   `).join("");
@@ -823,9 +827,9 @@ function renderCategoriesManagement() {
   if (!categoriesList) return;
   categoriesList.innerHTML = categoriesState.length ? categoriesState.map((category) => `
     <button class="management-item" type="button" data-category-id="${escapeHtml(category.id)}">
-      <strong>${escapeHtml(category.code)} · ${escapeHtml(category.name)}</strong>
+      <strong>${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name)}</strong>
       <span><mark>${category.isActive ? "Aktywna" : "Nieaktywna"}</mark> · limit: ${escapeHtml(category.capacity ?? "-")} · sort: ${escapeHtml(category.sortOrder ?? 0)}</span>
-      <small>${category.requiresLicense ? "Wymaga licencji" : "Bez licencji"} · zakres wieku: ${escapeHtml(category.ageMin ?? "-")} - ${escapeHtml(category.ageMax ?? "-")}</small>
+      <small>${category.requiresLicense ? "Wymaga licencji" : "Walidacja wieku"} · zakres wieku: ${escapeHtml(category.ageMin ?? "-")} - ${escapeHtml(category.ageMax ?? "-")}</small>
     </button>
   `).join("") : '<p class="form-message">Brak danych do wyświetlenia dla tego wydarzenia.</p>';
 }
@@ -1084,8 +1088,8 @@ function openDetails(registration) {
   const juniorMax = registration.event_categories?.age_max;
   const juniorOk = categoryCode(registration) !== "JUNIOR" || !Number.isFinite(Number(juniorMax)) || Number(age) <= Number(juniorMax);
   const categoryAssignmentNote = categoryCode(registration) === "PRO"
-    ? "Kategoria wybrana przez zawodnika — wymagająca licencji"
-    : "Kategoria przypisana automatycznie na podstawie wieku";
+    ? "Kategoria wybrana przez zawodnika. Wymagana jest weryfikacja UCI ID / numeru licencji."
+    : "Kategoria wybrana przez zawodnika i zweryfikowana na podstawie podanych danych.";
   const confirmationLink = registration.confirmation_token
     ? `${window.location.origin}/potwierdz?token=${encodeURIComponent(registration.confirmation_token)}`
     : "";

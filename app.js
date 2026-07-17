@@ -356,7 +356,7 @@ function statusClass(status) {
 }
 
 function categoryChips(categories = fallbackCategories) {
-  return categories.map((category) => `<span class="category-chip">${escapeHtml(category.code)}</span>`).join("");
+  return categories.map((category) => `<span class="category-chip">${escapeHtml(categoryLabel(category.code))}</span>`).join("");
 }
 
 function registrationClosedReason(event, now = new Date()) {

@@ -51,6 +51,10 @@ function checkinLabel(status) {
   }[status] || "Brak check-in";
 }
 
+function categoryLabel(code) {
+  return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
+}
+
 function formatDateTime(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -134,7 +138,7 @@ function renderList() {
       <div class="checkin-main">
         <div>
           <strong>${escapeHtml(registration.fullName)}</strong>
-          <span>${escapeHtml(registration.category?.code || "")} · ${escapeHtml(registration.birthDate || "-")} · ${escapeHtml(registration.city || "-")}</span>
+          <span>${escapeHtml(categoryLabel(registration.category?.code))} · ${escapeHtml(registration.birthDate || "-")} · ${escapeHtml(registration.city || "-")}</span>
         </div>
         <span class="status-chip checkin-${escapeHtml(registration.checkinStatus || "not_checked_in")}">${escapeHtml(checkinLabel(registration.checkinStatus))}</span>
       </div>
@@ -218,7 +222,7 @@ async function loadCategories() {
   const payload = await response.json();
   if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać kategorii.");
   categoriesState = payload.categories || [];
-  categorySelect.innerHTML = categoriesState.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.code)} · ${escapeHtml(category.name)}</option>`).join("");
+  categorySelect.innerHTML = categoriesState.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name)}</option>`).join("");
   if (categoriesState[0]) categorySelect.value = categoriesState[0].id;
 }
 

@@ -46,9 +46,14 @@ function confirmationStatusLabel(status) {
   }[status] || status || "status zgłoszenia";
 }
 
+function categoryLabel(code) {
+  return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
+}
+
 function publicPayload(row, url, qrSvg) {
   const event = row.events || {};
   const category = row.event_categories || {};
+  const categoryDisplay = categoryLabel(category.code || category.name);
   return {
     id: row.id,
     confirmationUrl: url,
@@ -64,8 +69,8 @@ function publicPayload(row, url, qrSvg) {
       slug: event.slug || "",
     },
     category: {
-      code: category.code || category.name || "",
-      name: category.name || category.code || "",
+      code: categoryDisplay,
+      name: categoryDisplay,
     },
     status: {
       code: row.status,

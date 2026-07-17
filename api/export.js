@@ -15,6 +15,10 @@ function ageAtEvent(birthDateValue, eventStartValue) {
   return age;
 }
 
+function categoryLabel(code) {
+  return String(code || "").toUpperCase() === "JUNIOR" ? "JUNIOR U15" : String(code || "").toUpperCase();
+}
+
 module.exports = async function handler(request, response) {
   try {
     if (!requireAdmin(request)) {
@@ -69,7 +73,7 @@ module.exports = async function handler(request, response) {
 
     const rows = (data || []).map((registration) => [
       registration.events?.name,
-      registration.event_categories?.code,
+      categoryLabel(registration.event_categories?.code),
       registration.status,
       registration.first_name,
       registration.last_name,
