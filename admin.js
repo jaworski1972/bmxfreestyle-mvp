@@ -915,7 +915,7 @@ function openDetails(registration) {
       <section>
         <h3>Licencja</h3>
         <div class="detail-list">
-          <p><strong>Numer licencji UCI / PZKol</strong><span>${escapeHtml(registration.license_number || "-")}</span></p>
+          <p><strong>UCI ID / numer licencji</strong><span>${escapeHtml(registration.license_number || "-")}</span></p>
         </div>
       </section>
       <section>

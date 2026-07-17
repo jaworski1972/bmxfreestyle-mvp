@@ -244,7 +244,7 @@ module.exports = async function handler(request, response) {
       json(response, 400, {
         ok: false,
         code: "license_required",
-        error: "Podaj numer licencji UCI / PZKol.",
+        error: "Podaj UCI ID lub numer licencji.",
         missing: ["licenseNumber"],
       });
       return;

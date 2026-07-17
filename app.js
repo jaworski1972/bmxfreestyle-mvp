@@ -461,11 +461,11 @@ async function renderSignupPlaceholder(slug) {
           <div>
             <p class="eyebrow">Krok 3</p>
             <h2>Dane licencji</h2>
-            <p>Wpisz numer licencji zawodniczej wymaganej dla kategorii PRO.</p>
+            <p>Wpisz UCI ID zawodnika lub numer licencji wymagany dla kategorii PRO.</p>
           </div>
           <div class="field-grid">
-            <label class="full">Numer licencji UCI / PZKol
-              <span>Wpisz numer licencji zawodniczej wymaganej dla kategorii PRO.</span>
+            <label class="full">UCI ID / numer licencji
+              <span>Wpisz UCI ID zawodnika lub numer licencji wymagany dla kategorii PRO.</span>
               <input name="licenseNumber" />
             </label>
           </div>
@@ -663,7 +663,7 @@ function setupRegistrationForm({ event, categories, consents }) {
     }
     if (isLicenseRequired(state.category)) {
       if (!form.elements.licenseNumber.value.trim()) {
-        return "Podaj numer licencji UCI / PZKol.";
+        return "Podaj UCI ID lub numer licencji.";
       }
     }
     if (state.minor) {
@@ -805,7 +805,7 @@ function faqSection() {
         <h2>Najczęstsze pytania</h2>
       </div>
       <div class="faq-list">
-        <article class="faq-item"><h3>Czy PRO wymaga licencji?</h3><p>Tak. W formularzu PRO podajesz jeden numer licencji UCI / PZKol.</p></article>
+        <article class="faq-item"><h3>Czy PRO wymaga licencji?</h3><p>Tak. W formularzu PRO podajesz jedno pole: UCI ID / numer licencji.</p></article>
         <article class="faq-item"><h3>Czy są osobne kategorie kobiet?</h3><p>Nie w MVP. Struktura kategorii ma jednak gender_scope, więc można je dodać później.</p></article>
         <article class="faq-item"><h3>Czy wysłanie formularza oznacza akceptację?</h3><p>Nie. Zgłoszenie trafia do weryfikacji organizatora, a status przyjęcia zostanie potwierdzony osobno.</p></article>
       </div>

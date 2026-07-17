@@ -56,7 +56,7 @@ module.exports = async function handler(request, response) {
       "Miasto",
       "Kraj",
       "Klub/team",
-      "Numer licencji UCI/PZKol",
+      "UCI ID / numer licencji",
       "Opiekun wymagany",
       "Opiekun",
       "Email opiekuna",

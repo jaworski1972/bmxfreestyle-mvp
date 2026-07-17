@@ -482,7 +482,7 @@ async function handleMockApi(request, response) {
     }
 
     if (category.requiresLicense && !normalizeText(body.licenseNumber)) {
-      sendJson(response, 400, { ok: false, code: "license_required", error: "Podaj numer licencji UCI / PZKol." });
+      sendJson(response, 400, { ok: false, code: "license_required", error: "Podaj UCI ID lub numer licencji." });
       return true;
     }
 
@@ -798,7 +798,7 @@ async function handleMockApi(request, response) {
       "E-mail zawodnika",
       "Telefon zawodnika",
       "Płeć",
-      "Numer licencji UCI/PZKol",
+      "UCI ID / numer licencji",
       "Czy wymagany opiekun",
       "Imię i nazwisko opiekuna",
       "E-mail opiekuna",
