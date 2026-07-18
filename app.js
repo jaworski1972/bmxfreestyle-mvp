@@ -686,12 +686,14 @@ function categoryShortDescription(code) {
 }
 
 function categoryCapacityLabel(category = {}) {
-  if (category.capacityLabel) return category.capacityLabel;
-  if (category.capacity === null || category.capacity === undefined || category.capacity === "") return "Brak limitu miejsc";
+  if (category.isActive === false || category.is_active === false) return "Zapisy zamknięte";
+  if (category.isFull || category.is_full) return "Zapisy na listę rezerwową";
+  if (category.status) return statusLabel(category.status);
+  if (category.capacity === null || category.capacity === undefined || category.capacity === "") return "Zapisy otwarte";
   const occupied = Number(category.occupiedCount || 0);
   const capacity = Number(category.capacity);
-  const suffix = occupied >= capacity ? " — lista rezerwowa" : "";
-  return `${occupied} / ${capacity} miejsc zajętych${suffix}`;
+  if (Number.isFinite(occupied) && Number.isFinite(capacity) && occupied >= capacity) return "Zapisy na listę rezerwową";
+  return "Zapisy otwarte";
 }
 
 function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCode(categories)) {
