@@ -22,7 +22,7 @@ with upserted_event as (
     'polish_cup',
     1,
     '2027-05-24 09:00:00+02',
-    '2027-05-25 18:00:00+02',
+    '2027-05-24 18:00:00+02',
     'Warszawa',
     'Skatepark Warszawa',
     'Pierwsza runda Pucharu Polski BMX Freestyle w sezonie 2027.',

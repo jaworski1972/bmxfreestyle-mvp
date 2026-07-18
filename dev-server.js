@@ -18,7 +18,7 @@ const mockEvents = [
     type: "polish_cup",
     roundNumber: 1,
     startsAt: "2027-05-24T09:00:00+02:00",
-    endsAt: "2027-05-25T18:00:00+02:00",
+    endsAt: "2027-05-24T18:00:00+02:00",
     city: "Warszawa",
     venue: "Skatepark Warszawa",
     description: "Pierwsza runda Pucharu Polski BMX Freestyle w sezonie 2027.",

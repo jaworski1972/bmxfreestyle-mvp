@@ -11,7 +11,7 @@ const fallbackEvent = {
   type: "polish_cup",
   roundNumber: 1,
   startsAt: "2027-05-24T09:00:00+02:00",
-  endsAt: "2027-05-25T18:00:00+02:00",
+  endsAt: "2027-05-24T18:00:00+02:00",
   city: "Warszawa",
   venue: "Skatepark Warszawa",
   description: "Pierwsza runda Pucharu Polski BMX Freestyle w sezonie 2027.",
@@ -405,6 +405,7 @@ function formatDateRange(event) {
   const end = event.endsAt ? new Date(event.endsAt) : null;
   const formatter = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long", year: "numeric" });
   if (!Number.isNaN(start.getTime()) && end && !Number.isNaN(end.getTime())) {
+    if (formatter.format(start) === formatter.format(end)) return formatter.format(start);
     return `${formatter.format(start)} – ${formatter.format(end)}`;
   }
   return Number.isNaN(start.getTime()) ? "Termin wkrótce" : formatter.format(start);

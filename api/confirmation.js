@@ -21,6 +21,7 @@ function formatDateRange(event = {}) {
   const end = event.ends_at ? new Date(event.ends_at) : null;
   const formatter = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long", year: "numeric" });
   if (!Number.isNaN(start.getTime()) && end && !Number.isNaN(end.getTime())) {
+    if (formatter.format(start) === formatter.format(end)) return formatter.format(start);
     return `${formatter.format(start)} - ${formatter.format(end)}`;
   }
   return Number.isNaN(start.getTime()) ? "Termin wkrótce" : formatter.format(start);
