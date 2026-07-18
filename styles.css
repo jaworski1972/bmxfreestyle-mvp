@@ -460,6 +460,67 @@ h3 {
   gap: 18px;
 }
 
+.signup-section-inline {
+  width: 100%;
+  padding: 24px 0 0;
+}
+
+.fast-inline-registration {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 220ms ease, transform 220ms ease, grid-template-rows 220ms ease;
+}
+
+.fast-inline-registration[hidden] {
+  display: none;
+}
+
+.fast-inline-registration .placeholder-page {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.inline-registration-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid rgba(180, 255, 0, 0.28);
+  border-radius: 8px;
+  background: #0f1115;
+  color: #ffffff;
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28);
+}
+
+.inline-registration-summary h3 {
+  margin: 0 0 8px;
+  font-size: clamp(1.25rem, 2.4vw, 2rem);
+}
+
+.inline-registration-summary p:not(.eyebrow) {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.inline-registration-summary .secondary-btn {
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(180, 255, 0, 0.46);
+  color: #ffffff;
+}
+
+.inline-registration-summary .secondary-btn:hover {
+  background: rgba(180, 255, 0, 0.14);
+  border-color: rgba(180, 255, 0, 0.68);
+}
+
+.fast-signup-section.is-expanded .fast-signup-flow {
+  margin-bottom: 6px;
+}
+
 .event-summary-card,
 .form-section {
   background: var(--white);
@@ -3031,6 +3092,15 @@ body.checkin-body {
     padding: 16px;
   }
 
+  .inline-registration-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .inline-registration-summary .secondary-btn {
+    width: 100%;
+  }
+
   .fast-category-tile span {
     min-height: 108px;
   }
@@ -3087,6 +3157,12 @@ body.checkin-body {
   .registrations-table-wrap {
     margin-inline: -4px;
     width: calc(100% + 8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fast-inline-registration {
+    transition: none;
   }
 }
 

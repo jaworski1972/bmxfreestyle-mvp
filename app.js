@@ -548,8 +548,11 @@ function categoryCards() {
 async function renderHome() {
   const events = await loadEvents();
   const visibleEvents = events.length ? events : [fallbackEvent];
-  const selectedEvent = defaultHomepageEvent(visibleEvents);
+  const params = new URLSearchParams(window.location.search);
+  const requestedEventSlug = params.get("event");
+  const selectedEvent = visibleEvents.find((event) => event.slug === requestedEventSlug) || defaultHomepageEvent(visibleEvents);
   const selectedCategories = await loadCategories(selectedEvent.id);
+  const openInlineRegistration = params.get("register") === "1";
   app.innerHTML = `
     <section class="hero home-hero image-hero" aria-label="Puchar Polski BMX Freestyle">
       <picture>
@@ -569,7 +572,7 @@ async function renderHome() {
       ${partnersSection()}
     </div>
   `;
-  setupFastSignup({ events: visibleEvents, initialCategories: selectedCategories });
+  setupFastSignup({ events: visibleEvents, initialCategories: selectedCategories, openInlineRegistration });
 }
 
 function partnersSection() {
@@ -741,6 +744,7 @@ function fastSignupSection(events, selectedEvent, categories) {
             <p class="fast-signup-message" id="fastSignupMessage">${escapeHtml(closedReason || "Przejdziesz do formularza z wybraną kategorią.")}</p>
           </div>
         </div>
+        <div class="fast-inline-registration" id="fastInlineRegistration" hidden></div>
       </div>
     </section>
   `;
@@ -766,7 +770,7 @@ function eventCard(event) {
   `;
 }
 
-function setupFastSignup({ events, initialCategories }) {
+function setupFastSignup({ events, initialCategories, openInlineRegistration = false }) {
   const section = document.querySelector("#fastSignup");
   if (!section) return;
 
@@ -775,8 +779,10 @@ function setupFastSignup({ events, initialCategories }) {
   const statusElement = section.querySelector("#fastEventStatus");
   const message = section.querySelector("#fastSignupMessage");
   const submitButton = section.querySelector("#fastSignupButton");
+  const inlineContainer = section.querySelector("#fastInlineRegistration");
   let selectedEvent = events.find((event) => event.slug === eventSelect.value) || events[0] || fallbackEvent;
   let selectedCategories = initialCategories.length ? initialCategories : fallbackCategories;
+  let inlineController = null;
 
   function selectedCategoryCode() {
     return section.querySelector('input[name="fastCategory"]:checked')?.value || preferredCategoryCode(selectedCategories);
@@ -799,14 +805,81 @@ function setupFastSignup({ events, initialCategories }) {
     updateSubmitState();
   }
 
-  eventSelect.addEventListener("change", updateCategoriesForEvent);
-  submitButton.addEventListener("click", () => {
+  function compactUrl() {
+    return "/";
+  }
+
+  function registrationUrl() {
+    return `/?register=1&event=${encodeURIComponent(selectedEvent.slug)}&category=${encodeURIComponent(selectedCategoryCode())}`;
+  }
+
+  function collapseInlineRegistration({ updateUrl = true } = {}) {
+    inlineContainer.hidden = true;
+    inlineContainer.innerHTML = "";
+    section.classList.remove("is-expanded");
+    inlineController = null;
+    if (updateUrl) window.history.pushState({}, "", compactUrl());
+    submitButton.focus({ preventScroll: true });
+  }
+
+  async function openInlineForm({ updateUrl = true, focus = true } = {}) {
     if (submitButton.disabled) return;
-    const target = `/zapisy/${selectedEvent.slug}?category=${encodeURIComponent(selectedCategoryCode())}`;
-    window.history.pushState({}, "", target);
-    router();
-  });
+    const categoryCode = selectedCategoryCode();
+    const selectedCategory = categoryByCode(selectedCategories, categoryCode) || selectedCategories[0] || null;
+    inlineContainer.hidden = false;
+    inlineContainer.innerHTML = '<p class="fast-signup-message">Ładuję formularz...</p>';
+    section.classList.add("is-expanded");
+    if (updateUrl) window.history.pushState({}, "", registrationUrl());
+
+    const consents = await loadConsents(selectedEvent.id);
+    const closedReason = registrationClosedReason(selectedEvent);
+    const formDisabled = Boolean(closedReason) || selectedCategories.length === 0;
+    const statusMessage = closedReason
+      ? closedReason
+      : selectedCategories.length === 0
+        ? "Brak aktywnych kategorii dla tego wydarzenia."
+        : "";
+
+    inlineContainer.innerHTML = registrationFormHtml({
+      event: selectedEvent,
+      categories: selectedCategories,
+      consents,
+      selectedCategory,
+      formDisabled,
+      statusMessage,
+      inline: true,
+    });
+
+    inlineController = setupRegistrationForm({
+      event: selectedEvent,
+      categories: selectedCategories,
+      consents,
+      root: inlineContainer,
+      successContainer: inlineContainer,
+      onChangeSelection: () => collapseInlineRegistration(),
+    });
+
+    inlineContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (focus) {
+      window.setTimeout(() => inlineController?.focusFirstRequired(), 320);
+    }
+  }
+
+  eventSelect.addEventListener("change", updateCategoriesForEvent);
+  submitButton.addEventListener("click", () => openInlineForm());
   updateSubmitState();
+
+  if (openInlineRegistration) {
+    const params = new URLSearchParams(window.location.search);
+    const categoryFromUrl = String(params.get("category") || "").toUpperCase();
+    const requested = categoryByCode(selectedCategories, categoryFromUrl);
+    if (requested) {
+      const input = [...section.querySelectorAll('input[name="fastCategory"]')]
+        .find((candidate) => candidate.value === String(requested.code || "").toUpperCase());
+      if (input) input.checked = true;
+    }
+    openInlineForm({ updateUrl: false, focus: false });
+  }
 }
 
 async function renderEvents() {
@@ -855,49 +928,22 @@ async function renderEventDetails(slug) {
   `;
 }
 
-async function renderSignupPlaceholder(slug) {
-  const event = await loadEvent(slug);
-  if (!event) {
-    app.innerHTML = `
-      <section class="placeholder-page">
-        <p class="eyebrow">Brak wydarzenia</p>
-        <h1>Nie znaleziono zawodów</h1>
-        <p>Sprawdź link albo wróć do listy wydarzeń.</p>
-        <a class="primary-btn" href="/zawody" data-link>Zobacz zawody</a>
-      </section>
-    `;
-    return;
-  }
-
-  const categories = await loadCategories(event.id);
-  const consents = await loadConsents(event.id);
-  const closedReason = registrationClosedReason(event);
-  const formDisabled = Boolean(closedReason) || categories.length === 0;
-  const params = new URLSearchParams(window.location.search);
-  const categoryParam = params.get("category");
-  const preselectedCategoryCode = String(categoryParam || "").trim().toUpperCase();
-  const selectedCategory = categoryByCode(categories, preselectedCategoryCode) || categories[0] || null;
-  const statusMessage = closedReason
-    ? closedReason
-    : categories.length === 0
-      ? "Brak aktywnych kategorii dla tego wydarzenia."
-      : "";
-
-  app.innerHTML = `
-    <section class="page-hero signup-hero">
-      <div class="event-summary-card">
-        <p class="eyebrow">${statusLabel(event.status)}</p>
-        <h1>${escapeHtml(event.name)}</h1>
-        <p>${formatDateRange(event)} · ${escapeHtml(event.city)} · ${escapeHtml(event.venue)}</p>
-        ${event.organizerMessage ? `<div class="notice">${escapeHtml(event.organizerMessage)}</div>` : ""}
-      </div>
-    </section>
-
-    <section class="section section-tight signup-section">
-
+function registrationFormHtml({ event, categories, consents, selectedCategory, formDisabled, statusMessage = "", inline = false }) {
+  return `
+    <section class="section section-tight signup-section ${inline ? "signup-section-inline" : ""}">
       ${statusMessage ? `<div class="form-alert">${escapeHtml(statusMessage)}</div>` : ""}
+      ${inline ? `
+        <div class="inline-registration-summary" id="inlineRegistrationSummary" tabindex="-1">
+          <div>
+            <p class="eyebrow">Formularz zgłoszeniowy</p>
+            <h3>Wybrane wydarzenie: ${escapeHtml(event.name)}</h3>
+            <p>Kategoria: <strong>${escapeHtml(categoryLabel(selectedCategory?.code) || "Nie wybrano")}</strong></p>
+          </div>
+          <button class="secondary-btn inline-change-selection" type="button">Zmień wydarzenie lub kategorię</button>
+        </div>
+      ` : ""}
 
-      <form class="registration-form" id="registrationForm" novalidate>
+      <form class="registration-form" id="${inline ? "inlineRegistrationForm" : "registrationForm"}" novalidate>
         <input type="hidden" name="eventId" value="${escapeHtml(event.id)}" />
         <input type="hidden" name="eventSlug" value="${escapeHtml(event.slug)}" />
 
@@ -933,7 +979,7 @@ async function renderSignupPlaceholder(slug) {
           </div>
         </section>
 
-        <section class="form-section">
+        <section class="form-section athlete-data-section">
           <div>
             <p class="eyebrow">Krok 2</p>
             <h2>Dane zawodnika</h2>
@@ -1032,8 +1078,49 @@ async function renderSignupPlaceholder(slug) {
       </form>
     </section>
   `;
+}
 
-  if (!formDisabled) setupRegistrationForm({ event, categories, consents });
+async function renderSignupPlaceholder(slug) {
+  const event = await loadEvent(slug);
+  if (!event) {
+    app.innerHTML = `
+      <section class="placeholder-page">
+        <p class="eyebrow">Brak wydarzenia</p>
+        <h1>Nie znaleziono zawodów</h1>
+        <p>Sprawdź link albo wróć do listy wydarzeń.</p>
+        <a class="primary-btn" href="/zawody" data-link>Zobacz zawody</a>
+      </section>
+    `;
+    return;
+  }
+
+  const categories = await loadCategories(event.id);
+  const consents = await loadConsents(event.id);
+  const closedReason = registrationClosedReason(event);
+  const formDisabled = Boolean(closedReason) || categories.length === 0;
+  const params = new URLSearchParams(window.location.search);
+  const categoryParam = params.get("category");
+  const preselectedCategoryCode = String(categoryParam || "").trim().toUpperCase();
+  const selectedCategory = categoryByCode(categories, preselectedCategoryCode) || categories[0] || null;
+  const statusMessage = closedReason
+    ? closedReason
+    : categories.length === 0
+      ? "Brak aktywnych kategorii dla tego wydarzenia."
+      : "";
+
+  app.innerHTML = `
+    <section class="page-hero signup-hero">
+      <div class="event-summary-card">
+        <p class="eyebrow">${statusLabel(event.status)}</p>
+        <h1>${escapeHtml(event.name)}</h1>
+        <p>${formatDateRange(event)} · ${escapeHtml(event.city)} · ${escapeHtml(event.venue)}</p>
+        ${event.organizerMessage ? `<div class="notice">${escapeHtml(event.organizerMessage)}</div>` : ""}
+      </div>
+    </section>
+    ${registrationFormHtml({ event, categories, consents, selectedCategory, formDisabled, statusMessage })}
+  `;
+
+  if (!formDisabled) setupRegistrationForm({ event, categories, consents, root: app, successContainer: app });
 }
 
 function eventStartDate(event) {
@@ -1092,15 +1179,18 @@ function setMessage(element, message, type = "info") {
   element.dataset.type = type;
 }
 
-function setupRegistrationForm({ event, categories, consents }) {
-  const form = document.querySelector("#registrationForm");
-  const ageStatus = document.querySelector("#ageStatus");
-  const licenseSection = document.querySelector("#licenseSection");
-  const guardianSection = document.querySelector("#guardianSection");
-  const consentItems = [...document.querySelectorAll(".consent-item")];
-  const summary = document.querySelector("#formSummary");
-  const message = document.querySelector("#formMessage");
+function setupRegistrationForm({ event, categories, consents, root = document, successContainer = app, onChangeSelection = null }) {
+  const form = root.querySelector(".registration-form");
+  if (!form) return null;
+  const ageStatus = root.querySelector("#ageStatus");
+  const licenseSection = root.querySelector("#licenseSection");
+  const guardianSection = root.querySelector("#guardianSection");
+  const consentItems = [...root.querySelectorAll(".consent-item")];
+  const summary = root.querySelector("#formSummary");
+  const message = root.querySelector("#formMessage");
   const submitButton = form.querySelector(".submit-btn");
+  const changeSelectionButton = root.querySelector(".inline-change-selection");
+  let dirty = false;
 
   function formState() {
     const age = calculateAge(form.elements.birthDate.value, eventStartDate(event));
@@ -1262,7 +1352,7 @@ function setupRegistrationForm({ event, categories, consents }) {
       const confirmationLink = payload.registration?.confirmation_token
         ? `/potwierdz?token=${encodeURIComponent(payload.registration.confirmation_token)}`
         : "";
-      app.innerHTML = `
+      successContainer.innerHTML = `
         <section class="placeholder-page success-page">
           <div class="success-mark" aria-hidden="true">✓</div>
           <p class="eyebrow">Zgłoszenie wysłane</p>
@@ -1289,10 +1379,29 @@ function setupRegistrationForm({ event, categories, consents }) {
     }
   }
 
-  form.addEventListener("input", updateDynamicState);
-  form.addEventListener("change", updateDynamicState);
+  form.addEventListener("input", () => {
+    dirty = true;
+    updateDynamicState();
+  });
+  form.addEventListener("change", () => {
+    dirty = true;
+    updateDynamicState();
+  });
   form.addEventListener("submit", submitRegistration);
+  changeSelectionButton?.addEventListener("click", () => {
+    if (dirty && !window.confirm("Wpisane dane formularza zostaną ukryte. Czy chcesz wrócić do wyboru wydarzenia i kategorii?")) return;
+    onChangeSelection?.();
+  });
   updateDynamicState();
+  return {
+    focusFirstRequired() {
+      const firstRequired = form.querySelector(".athlete-data-section input[required]:not([disabled])");
+      firstRequired?.focus({ preventScroll: true });
+    },
+    isDirty() {
+      return dirty;
+    },
+  };
 }
 
 async function renderConfirmationPlaceholder() {
