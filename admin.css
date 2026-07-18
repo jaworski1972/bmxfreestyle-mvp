@@ -1020,6 +1020,70 @@ mark {
   border-radius: var(--radius-sm);
 }
 
+.checkin-counters .dashboard-tile {
+  min-width: 0;
+}
+
+.checkin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkin-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.checkin-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.checkin-main strong {
+  font-size: 0.94rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.checkin-main span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.checkin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.checkin-meta strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.checkin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkin-actions .primary-btn,
+.checkin-actions .secondary-btn {
+  padding: 8px 14px;
+  font-size: 0.8rem;
+}
+
 /* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
