@@ -55,6 +55,19 @@ async function ensureCategoryCapacity(supabase, registration, targetCategory) {
   return null;
 }
 
+async function duplicateInTargetEvent(supabase, registration, targetEventId) {
+  if (!registration.athlete_identity_key) return null;
+  const { data, error } = await supabase
+    .from("registrations")
+    .select("id,first_name,last_name,birth_date")
+    .eq("event_id", targetEventId)
+    .eq("athlete_identity_key", registration.athlete_identity_key)
+    .neq("id", registration.id)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
 module.exports = async function handler(request, response) {
   try {
     if (!requireAdmin(request)) {
@@ -82,6 +95,7 @@ module.exports = async function handler(request, response) {
     if (request.method === "PATCH") {
       const body = readBody(request);
       const id = String(body.id || request.query?.id || "").trim();
+      const eventId = String(body.eventId || body.event_id || "").trim();
       const categoryId = String(body.categoryId || body.category_id || "").trim();
       const status = String(body.status || "").trim();
 
@@ -90,10 +104,15 @@ module.exports = async function handler(request, response) {
         return;
       }
 
-      if (categoryId) {
+      if (eventId || categoryId) {
+        if (!categoryId) {
+          json(response, 400, { ok: false, error: "Wybierz kategorię docelową." });
+          return;
+        }
+
         const { data: previousRegistration, error: previousError } = await supabase
           .from("registrations")
-          .select("id,status,event_id,category_id")
+          .select("id,status,event_id,category_id,athlete_identity_key")
           .eq("id", id)
           .single();
         if (previousError) throw previousError;
@@ -105,19 +124,43 @@ module.exports = async function handler(request, response) {
           .single();
         if (categoryError) throw categoryError;
 
-        if (targetCategory.event_id !== previousRegistration.event_id) {
-          json(response, 400, { ok: false, error: "Kategoria docelowa musi należeć do tego samego wydarzenia." });
+        const targetEventId = eventId || previousRegistration.event_id;
+        if (targetCategory.event_id !== targetEventId) {
+          json(response, 400, { ok: false, error: "Kategoria docelowa musi należeć do wybranego wydarzenia." });
           return;
         }
 
-        if (targetCategory.id === previousRegistration.category_id) {
+        if (targetEventId !== previousRegistration.event_id) {
+          const { data: targetEvent, error: eventError } = await supabase
+            .from("events")
+            .select("id")
+            .eq("id", targetEventId)
+            .single();
+          if (eventError || !targetEvent) {
+            json(response, 400, { ok: false, error: "Nie znaleziono wydarzenia docelowego." });
+            return;
+          }
+
+          const duplicate = await duplicateInTargetEvent(supabase, previousRegistration, targetEventId);
+          if (duplicate) {
+            json(response, 409, {
+              ok: false,
+              code: "duplicate_registration",
+              error: "Ten zawodnik jest już zapisany na wybrane wydarzenie.",
+              duplicateId: duplicate.id,
+            });
+            return;
+          }
+        }
+
+        if (targetEventId === previousRegistration.event_id && targetCategory.id === previousRegistration.category_id) {
           const { data, error } = await supabase
             .from("registrations")
             .select(REGISTRATION_SELECT)
             .eq("id", id)
             .single();
           if (error) throw error;
-          json(response, 200, { ok: true, registration: data, categoryChanged: false });
+          json(response, 200, { ok: true, registration: data, categoryChanged: false, eventChanged: false });
           return;
         }
 
@@ -135,9 +178,12 @@ module.exports = async function handler(request, response) {
         const { error: updateError } = await supabase
           .from("registrations")
           .update({
+            event_id: targetEventId,
             category_id: categoryId,
             start_order: null,
             bib_number: null,
+            checkin_status: "not_checked_in",
+            checked_in_at: null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", id);
@@ -150,7 +196,12 @@ module.exports = async function handler(request, response) {
           .single();
         if (error) throw error;
 
-        json(response, 200, { ok: true, registration: data, categoryChanged: true });
+        json(response, 200, {
+          ok: true,
+          registration: data,
+          categoryChanged: targetCategory.id !== previousRegistration.category_id,
+          eventChanged: targetEventId !== previousRegistration.event_id,
+        });
         return;
       }
 

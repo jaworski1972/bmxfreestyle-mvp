@@ -1105,6 +1105,10 @@ function openDetails(registration) {
   const confirmationLink = registration.confirmation_token
     ? `${window.location.origin}/potwierdz?token=${encodeURIComponent(registration.confirmation_token)}`
     : "";
+  const currentEventId = registration.event_id || event.id || "";
+  const eventOptions = eventsState.some((eventItem) => eventItem.id === currentEventId)
+    ? eventsState
+    : [{ id: currentEventId, name: event.name || "Bieżące wydarzenie" }, ...eventsState].filter((eventItem) => eventItem.id);
 
   registrationDetails.innerHTML = `
     <div class="modal-header">
@@ -1189,23 +1193,34 @@ function openDetails(registration) {
       </form>
     </section>
     <section class="status-editor">
-      <h3>Korekta kategorii</h3>
+      <h3>Korekta wydarzenia i kategorii</h3>
       <form id="categoryCorrectionForm">
         <input type="hidden" name="id" value="${escapeHtml(registration.id)}" />
+        <label>Nowe wydarzenie
+          <select name="eventId" id="eventCorrectionSelect">
+            ${eventOptions.map((eventItem) => `
+              <option value="${escapeHtml(eventItem.id)}" ${eventItem.id === currentEventId ? "selected" : ""}>
+                ${escapeHtml(eventItem.name)}
+              </option>
+            `).join("")}
+          </select>
+        </label>
         <label>Nowa kategoria
           <select name="categoryId" id="categoryCorrectionSelect" disabled>
             <option value="">Ładuję kategorie...</option>
           </select>
         </label>
-        <p class="form-hint">Zmiana kategorii wyzeruje numer startowy i kolejność na liście startowej dla tego zgłoszenia.</p>
-        <button class="primary-btn" type="submit" disabled>Zapisz kategorię</button>
+        <p class="form-hint">Zmiana wydarzenia lub kategorii wyzeruje check-in, numer startowy i kolejność na liście startowej dla tego zgłoszenia.</p>
+        <button class="primary-btn" type="submit" disabled>Zapisz korektę</button>
         <p class="form-message" id="categoryCorrectionMessage" role="status"></p>
       </form>
     </section>
   `;
 
   registrationDetails.querySelector("#statusForm").addEventListener("submit", handleStatusSubmit);
-  registrationDetails.querySelector("#categoryCorrectionForm").addEventListener("submit", handleCategoryCorrectionSubmit);
+  const categoryCorrectionForm = registrationDetails.querySelector("#categoryCorrectionForm");
+  categoryCorrectionForm.addEventListener("submit", handleCategoryCorrectionSubmit);
+  categoryCorrectionForm.elements.eventId.addEventListener("change", () => loadCategoryCorrectionOptions(registration));
   loadCategoryCorrectionOptions(registration);
   modal.classList.add("is-open");
   if (typeof modal.showModal === "function") {
@@ -1222,10 +1237,11 @@ function openDetails(registration) {
 async function loadCategoryCorrectionOptions(registration) {
   const form = registrationDetails.querySelector("#categoryCorrectionForm");
   if (!form) return;
+  const eventSelect = form.elements.eventId;
   const select = form.elements.categoryId;
   const submitButton = form.querySelector("button[type='submit']");
   const message = form.querySelector("#categoryCorrectionMessage");
-  const eventId = registration.event_id || eventData(registration).id;
+  const eventId = eventSelect.value || registration.event_id || eventData(registration).id;
 
   if (!eventId) {
     select.innerHTML = '<option value="">Brak identyfikatora wydarzenia</option>';
@@ -1234,21 +1250,28 @@ async function loadCategoryCorrectionOptions(registration) {
   }
 
   try {
+    select.disabled = true;
+    submitButton.disabled = true;
+    select.innerHTML = '<option value="">Ładuję kategorie...</option>';
     const response = await fetch(`/api/categories?eventId=${encodeURIComponent(eventId)}&includeInactive=true`, { headers: authHeaders() });
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać kategorii.");
 
     const categories = payload.categories || [];
+    const currentCode = String(categoryCode(registration) || "").toUpperCase();
+    const preferredCategory = eventId === registration.event_id
+      ? registration.category_id
+      : categories.find((category) => String(category.code || "").toUpperCase() === currentCode && category.isActive !== false)?.id || "";
     select.innerHTML = categories.length
       ? categories.map((category) => `
-        <option value="${escapeHtml(category.id)}" ${category.id === registration.category_id ? "selected" : ""} ${category.isActive === false ? "disabled" : ""}>
+        <option value="${escapeHtml(category.id)}" ${category.id === preferredCategory ? "selected" : ""} ${category.isActive === false ? "disabled" : ""}>
           ${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name || category.code)}${category.isActive === false ? " · nieaktywna" : ""}
         </option>
       `).join("")
       : '<option value="">Brak kategorii dla wydarzenia</option>';
     select.disabled = categories.length === 0;
     submitButton.disabled = categories.length === 0;
-    setMessage(message, "Wybierz kategorię tylko wtedy, gdy chcesz skorygować zgłoszenie.", "info");
+    setMessage(message, "Wybierz wydarzenie i kategorię tylko wtedy, gdy chcesz skorygować zgłoszenie.", "info");
   } catch (error) {
     select.innerHTML = '<option value="">Nie udało się pobrać kategorii</option>';
     select.disabled = true;
@@ -1273,6 +1296,7 @@ async function handleCategoryCorrectionSubmit(event) {
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         id: data.get("id"),
+        eventId: data.get("eventId"),
         categoryId: data.get("categoryId"),
       }),
     });
@@ -1281,7 +1305,8 @@ async function handleCategoryCorrectionSubmit(event) {
 
     const index = registrationsState.findIndex((item) => item.id === payload.registration.id);
     if (index >= 0) registrationsState[index] = payload.registration;
-    setMessage(message, payload.categoryChanged ? "Kategoria zapisana. Lista startowa dla zgłoszenia została zresetowana." : "Kategoria bez zmian.", "success");
+    const changed = payload.eventChanged || payload.categoryChanged;
+    setMessage(message, changed ? "Korekta zapisana. Check-in i lista startowa dla zgłoszenia zostały zresetowane." : "Wydarzenie i kategoria bez zmian.", "success");
     renderAll();
     openDetails(payload.registration);
   } catch (error) {
