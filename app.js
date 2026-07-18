@@ -548,9 +548,11 @@ function categoryCards() {
 async function renderHome() {
   const events = await loadEvents();
   const visibleEvents = events.length ? events : [fallbackEvent];
+  const signupEvents = visibleEvents.filter((event) => !registrationClosedReason(event));
+  const selectableEvents = signupEvents.length ? signupEvents : [defaultHomepageEvent(visibleEvents)];
   const params = new URLSearchParams(window.location.search);
   const requestedEventSlug = params.get("event");
-  const selectedEvent = visibleEvents.find((event) => event.slug === requestedEventSlug) || defaultHomepageEvent(visibleEvents);
+  const selectedEvent = selectableEvents.find((event) => event.slug === requestedEventSlug) || defaultHomepageEvent(selectableEvents);
   const selectedCategories = await loadCategories(selectedEvent.id);
   const openInlineRegistration = params.get("register") === "1";
   app.innerHTML = `
@@ -562,7 +564,7 @@ async function renderHome() {
     </section>
     <div class="section-glow-separator" aria-hidden="true"></div>
     <div class="home-dark-content">
-      ${fastSignupSection(visibleEvents, selectedEvent, selectedCategories)}
+      ${fastSignupSection(selectableEvents, selectedEvent, selectedCategories)}
       <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
       ${SHOW_HOMEPAGE_EVENTS ? homepageEventsSection(visibleEvents) : ""}
       ${SHOW_HOMEPAGE_FLOW ? homepageFlowSection() : ""}
@@ -708,6 +710,28 @@ function fastSignupCategoryTiles(categories, selectedCode = preferredCategoryCod
   }).join("");
 }
 
+function fastSignupEventCards(events, selectedSlug) {
+  return events.map((event) => {
+    const closedReason = registrationClosedReason(event);
+    return `
+      <label class="fast-event-card">
+        <input
+          type="radio"
+          name="fastEvent"
+          value="${escapeHtml(event.slug)}"
+          ${event.slug === selectedSlug ? "checked" : ""}
+        />
+        <span>
+          <i aria-hidden="true"></i>
+          <strong>${escapeHtml(event.name)}</strong>
+          <small>${escapeHtml(event.city)} · ${escapeHtml(formatDateRange(event))}</small>
+          <em class="fast-status ${statusClass(event.status)}">${escapeHtml(closedReason || statusLabel(event.status))}</em>
+        </span>
+      </label>
+    `;
+  }).join("");
+}
+
 function fastSignupSection(events, selectedEvent, categories) {
   const closedReason = registrationClosedReason(selectedEvent);
   return `
@@ -721,15 +745,10 @@ function fastSignupSection(events, selectedEvent, categories) {
         </div>
         <div class="fast-signup-flow">
           <div class="fast-signup-step">
-            <label for="fastEventSelect">01 Wybierz zawody</label>
-            <select id="fastEventSelect">
-              ${events.map((event) => `
-                <option value="${escapeHtml(event.slug)}" ${event.slug === selectedEvent.slug ? "selected" : ""}>
-                  ${escapeHtml(event.name)} · ${escapeHtml(statusLabel(event.status))}
-                </option>
-              `).join("")}
-            </select>
-            <span class="fast-status ${statusClass(selectedEvent.status)}" id="fastEventStatus">${escapeHtml(statusLabel(selectedEvent.status))}</span>
+            <p class="fast-step-label">01 Wybierz zawody</p>
+            <div class="fast-event-grid" id="fastEventGrid">
+              ${fastSignupEventCards(events, selectedEvent.slug)}
+            </div>
             <a class="fast-calendar-link" href="/zawody" data-link>Zobacz wszystkie rundy w kalendarzu</a>
           </div>
           <div class="fast-signup-step fast-category-step">
@@ -774,31 +793,36 @@ function setupFastSignup({ events, initialCategories, openInlineRegistration = f
   const section = document.querySelector("#fastSignup");
   if (!section) return;
 
-  const eventSelect = section.querySelector("#fastEventSelect");
+  const eventGrid = section.querySelector("#fastEventGrid");
   const categoryGrid = section.querySelector("#fastCategoryGrid");
-  const statusElement = section.querySelector("#fastEventStatus");
   const message = section.querySelector("#fastSignupMessage");
   const submitButton = section.querySelector("#fastSignupButton");
   const inlineContainer = section.querySelector("#fastInlineRegistration");
-  let selectedEvent = events.find((event) => event.slug === eventSelect.value) || events[0] || fallbackEvent;
+  let selectedEvent = events.find((event) => event.slug === section.querySelector('input[name="fastEvent"]:checked')?.value) || events[0] || fallbackEvent;
   let selectedCategories = initialCategories.length ? initialCategories : fallbackCategories;
   let inlineController = null;
 
+  function selectedEventSlug() {
+    return section.querySelector('input[name="fastEvent"]:checked')?.value || "";
+  }
+
   function selectedCategoryCode() {
-    return section.querySelector('input[name="fastCategory"]:checked')?.value || preferredCategoryCode(selectedCategories);
+    return section.querySelector('input[name="fastCategory"]:checked')?.value || "";
   }
 
   function updateSubmitState() {
     const closedReason = registrationClosedReason(selectedEvent);
     const hasCategory = selectedCategories.length > 0;
-    submitButton.disabled = Boolean(closedReason) || !hasCategory;
-    message.textContent = closedReason || (hasCategory ? "Przejdziesz do formularza z wybraną kategorią." : "Brak aktywnych kategorii dla tego wydarzenia.");
-    statusElement.textContent = statusLabel(selectedEvent.status);
-    statusElement.className = `fast-status ${statusClass(selectedEvent.status)}`;
+    const hasEvent = Boolean(selectedEventSlug());
+    const hasSelectedCategory = Boolean(selectedCategoryCode());
+    submitButton.disabled = Boolean(closedReason) || !hasEvent || !hasCategory || !hasSelectedCategory;
+    message.textContent = closedReason
+      || (!hasEvent || !hasSelectedCategory ? "Wybierz wydarzenie i kategorię." : "")
+      || (hasCategory ? "Przejdziesz do formularza z wybraną kategorią." : "Brak aktywnych kategorii dla tego wydarzenia.");
   }
 
   async function updateCategoriesForEvent() {
-    selectedEvent = events.find((event) => event.slug === eventSelect.value) || selectedEvent;
+    selectedEvent = events.find((event) => event.slug === selectedEventSlug()) || selectedEvent;
     categoryGrid.innerHTML = '<p class="fast-signup-message">Ładuję kategorie...</p>';
     selectedCategories = await loadCategories(selectedEvent.id);
     categoryGrid.innerHTML = fastSignupCategoryTiles(selectedCategories);
@@ -865,12 +889,21 @@ function setupFastSignup({ events, initialCategories, openInlineRegistration = f
     }
   }
 
-  eventSelect.addEventListener("change", updateCategoriesForEvent);
+  eventGrid.addEventListener("change", updateCategoriesForEvent);
+  categoryGrid.addEventListener("change", updateSubmitState);
   submitButton.addEventListener("click", () => openInlineForm());
   updateSubmitState();
 
   if (openInlineRegistration) {
     const params = new URLSearchParams(window.location.search);
+    const eventFromUrl = String(params.get("event") || "");
+    const requestedEvent = events.find((event) => event.slug === eventFromUrl);
+    if (requestedEvent) {
+      const eventInput = [...section.querySelectorAll('input[name="fastEvent"]')]
+        .find((candidate) => candidate.value === requestedEvent.slug);
+      if (eventInput) eventInput.checked = true;
+      selectedEvent = requestedEvent;
+    }
     const categoryFromUrl = String(params.get("category") || "").toUpperCase();
     const requested = categoryByCode(selectedCategories, categoryFromUrl);
     if (requested) {

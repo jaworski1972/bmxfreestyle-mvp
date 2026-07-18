@@ -2263,7 +2263,7 @@ body.checkin-body {
   border-radius: 8px;
 }
 
-.fast-signup-step label,
+.fast-signup-step > label,
 .fast-step-label {
   margin: 0;
   color: var(--lime);
@@ -2272,17 +2272,93 @@ body.checkin-body {
   text-transform: uppercase;
 }
 
-.fast-signup-step select {
+.fast-event-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.fast-event-card {
   min-width: 0;
-  width: 100%;
-  min-height: 52px;
-  padding: 0 12px;
-  border: 1px solid rgba(180, 255, 0, 0.28);
+  cursor: pointer;
+}
+
+.fast-event-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fast-event-card span {
+  position: relative;
+  display: grid;
+  min-height: 150px;
+  gap: 9px;
+  align-content: start;
+  padding: 20px 20px 20px 58px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
-  background: rgba(2, 3, 4, 0.86);
+  background: rgba(3, 4, 5, 0.76);
   color: var(--white);
-  font: inherit;
-  font-weight: 780;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.fast-event-card span:hover {
+  border-color: rgba(180, 255, 0, 0.42);
+  background: rgba(14, 17, 15, 0.88);
+  transform: translateY(-2px);
+}
+
+.fast-event-card input:focus-visible + span {
+  outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}
+
+.fast-event-card input:checked + span {
+  border-color: var(--lime);
+  background: linear-gradient(180deg, rgba(215, 255, 47, 0.16), rgba(3, 4, 5, 0.9));
+  box-shadow: 0 18px 42px rgba(180, 255, 0, 0.16);
+}
+
+.fast-event-card i {
+  position: absolute;
+  top: 21px;
+  left: 20px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.fast-event-card input:checked + span i {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 5px rgba(180, 255, 0, 0.1);
+}
+
+.fast-event-card input:checked + span i::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  background: var(--lime);
+}
+
+.fast-event-card strong {
+  font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+  line-height: 1.14;
+}
+
+.fast-event-card small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.92rem;
+  line-height: 1.36;
+}
+
+.fast-event-card .fast-status {
+  width: fit-content;
+  font-style: normal;
 }
 
 .fast-status {
