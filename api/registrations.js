@@ -2,7 +2,7 @@ const { getSupabase, json, readBody } = require("../lib/supabase");
 const { requireAdmin } = require("../lib/admin-auth");
 const { confirmationUrl, sendStatusChangedEmail } = require("../lib/mail");
 const { enabled, sendSmsNotification } = require("../lib/sms");
-const { CATEGORY_FULL_STATUS_MESSAGE, statusOccupiesCapacity } = require("../lib/registration-limits");
+const { CATEGORY_FULL_STATUS_MESSAGE, duplicateIdentityMatches, statusOccupiesCapacity } = require("../lib/registration-limits");
 
 const STATUS_VALUES = new Set(["pending_review", "accepted", "needs_info", "rejected", "waitlist"]);
 
@@ -56,16 +56,14 @@ async function ensureCategoryCapacity(supabase, registration, targetCategory) {
 }
 
 async function duplicateInTargetEvent(supabase, registration, targetEventId) {
-  if (!registration.athlete_identity_key) return null;
   const { data, error } = await supabase
     .from("registrations")
     .select("id,first_name,last_name,birth_date")
     .eq("event_id", targetEventId)
-    .eq("athlete_identity_key", registration.athlete_identity_key)
     .neq("id", registration.id)
-    .limit(1);
+    .eq("birth_date", registration.birth_date);
   if (error) throw error;
-  return data?.[0] || null;
+  return (data || []).find((existing) => duplicateIdentityMatches(existing, registration)) || null;
 }
 
 module.exports = async function handler(request, response) {
@@ -112,7 +110,7 @@ module.exports = async function handler(request, response) {
 
         const { data: previousRegistration, error: previousError } = await supabase
           .from("registrations")
-          .select("id,status,event_id,category_id,athlete_identity_key")
+          .select("id,status,event_id,category_id,first_name,last_name,birth_date")
           .eq("id", id)
           .single();
         if (previousError) throw previousError;
