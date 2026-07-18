@@ -36,6 +36,25 @@ async function ensureStatusCapacity(supabase, registration, nextStatus) {
   return null;
 }
 
+async function ensureCategoryCapacity(supabase, registration, targetCategory) {
+  if (!statusOccupiesCapacity(registration.status)) return null;
+  const capacity = targetCategory?.capacity;
+  if (capacity === null || capacity === undefined || capacity === "") return null;
+
+  const { count, error } = await supabase
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", targetCategory.id)
+    .neq("id", registration.id)
+    .in("status", ["pending_review", "accepted", "needs_info"]);
+  if (error) throw error;
+
+  if ((count || 0) >= Number(capacity)) {
+    return CATEGORY_FULL_STATUS_MESSAGE;
+  }
+  return null;
+}
+
 module.exports = async function handler(request, response) {
   try {
     if (!requireAdmin(request)) {
@@ -63,10 +82,75 @@ module.exports = async function handler(request, response) {
     if (request.method === "PATCH") {
       const body = readBody(request);
       const id = String(body.id || request.query?.id || "").trim();
+      const categoryId = String(body.categoryId || body.category_id || "").trim();
       const status = String(body.status || "").trim();
 
       if (!id) {
         json(response, 400, { ok: false, error: "Missing registration id." });
+        return;
+      }
+
+      if (categoryId) {
+        const { data: previousRegistration, error: previousError } = await supabase
+          .from("registrations")
+          .select("id,status,event_id,category_id")
+          .eq("id", id)
+          .single();
+        if (previousError) throw previousError;
+
+        const { data: targetCategory, error: categoryError } = await supabase
+          .from("event_categories")
+          .select("id,event_id,code,name,capacity,is_active")
+          .eq("id", categoryId)
+          .single();
+        if (categoryError) throw categoryError;
+
+        if (targetCategory.event_id !== previousRegistration.event_id) {
+          json(response, 400, { ok: false, error: "Kategoria docelowa musi należeć do tego samego wydarzenia." });
+          return;
+        }
+
+        if (targetCategory.id === previousRegistration.category_id) {
+          const { data, error } = await supabase
+            .from("registrations")
+            .select(REGISTRATION_SELECT)
+            .eq("id", id)
+            .single();
+          if (error) throw error;
+          json(response, 200, { ok: true, registration: data, categoryChanged: false });
+          return;
+        }
+
+        if (!targetCategory.is_active) {
+          json(response, 400, { ok: false, error: "Nie można przenieść zgłoszenia do nieaktywnej kategorii." });
+          return;
+        }
+
+        const capacityError = await ensureCategoryCapacity(supabase, previousRegistration, targetCategory);
+        if (capacityError) {
+          json(response, 409, { ok: false, code: "category_full", error: capacityError });
+          return;
+        }
+
+        const { error: updateError } = await supabase
+          .from("registrations")
+          .update({
+            category_id: categoryId,
+            start_order: null,
+            bib_number: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", id);
+        if (updateError) throw updateError;
+
+        const { data, error } = await supabase
+          .from("registrations")
+          .select(REGISTRATION_SELECT)
+          .eq("id", id)
+          .single();
+        if (error) throw error;
+
+        json(response, 200, { ok: true, registration: data, categoryChanged: true });
         return;
       }
 

@@ -1188,9 +1188,25 @@ function openDetails(registration) {
         <p class="form-message" id="statusMessage" role="status"></p>
       </form>
     </section>
+    <section class="status-editor">
+      <h3>Korekta kategorii</h3>
+      <form id="categoryCorrectionForm">
+        <input type="hidden" name="id" value="${escapeHtml(registration.id)}" />
+        <label>Nowa kategoria
+          <select name="categoryId" id="categoryCorrectionSelect" disabled>
+            <option value="">Ładuję kategorie...</option>
+          </select>
+        </label>
+        <p class="form-hint">Zmiana kategorii wyzeruje numer startowy i kolejność na liście startowej dla tego zgłoszenia.</p>
+        <button class="primary-btn" type="submit" disabled>Zapisz kategorię</button>
+        <p class="form-message" id="categoryCorrectionMessage" role="status"></p>
+      </form>
+    </section>
   `;
 
   registrationDetails.querySelector("#statusForm").addEventListener("submit", handleStatusSubmit);
+  registrationDetails.querySelector("#categoryCorrectionForm").addEventListener("submit", handleCategoryCorrectionSubmit);
+  loadCategoryCorrectionOptions(registration);
   modal.classList.add("is-open");
   if (typeof modal.showModal === "function") {
     try {
@@ -1200,6 +1216,77 @@ function openDetails(registration) {
     }
   } else {
     modal.setAttribute("open", "");
+  }
+}
+
+async function loadCategoryCorrectionOptions(registration) {
+  const form = registrationDetails.querySelector("#categoryCorrectionForm");
+  if (!form) return;
+  const select = form.elements.categoryId;
+  const submitButton = form.querySelector("button[type='submit']");
+  const message = form.querySelector("#categoryCorrectionMessage");
+  const eventId = registration.event_id || eventData(registration).id;
+
+  if (!eventId) {
+    select.innerHTML = '<option value="">Brak identyfikatora wydarzenia</option>';
+    setMessage(message, "Nie można pobrać kategorii bez identyfikatora wydarzenia.", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/categories?eventId=${encodeURIComponent(eventId)}&includeInactive=true`, { headers: authHeaders() });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać kategorii.");
+
+    const categories = payload.categories || [];
+    select.innerHTML = categories.length
+      ? categories.map((category) => `
+        <option value="${escapeHtml(category.id)}" ${category.id === registration.category_id ? "selected" : ""} ${category.isActive === false ? "disabled" : ""}>
+          ${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name || category.code)}${category.isActive === false ? " · nieaktywna" : ""}
+        </option>
+      `).join("")
+      : '<option value="">Brak kategorii dla wydarzenia</option>';
+    select.disabled = categories.length === 0;
+    submitButton.disabled = categories.length === 0;
+    setMessage(message, "Wybierz kategorię tylko wtedy, gdy chcesz skorygować zgłoszenie.", "info");
+  } catch (error) {
+    select.innerHTML = '<option value="">Nie udało się pobrać kategorii</option>';
+    select.disabled = true;
+    submitButton.disabled = true;
+    setMessage(message, error.message || "Nie udało się pobrać kategorii.", "error");
+  }
+}
+
+async function handleCategoryCorrectionSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const message = form.querySelector("#categoryCorrectionMessage");
+  const data = new FormData(form);
+  const submitButton = form.querySelector("button[type='submit']");
+
+  setMessage(message, "Zapisuję kategorię...", "info");
+  submitButton.disabled = true;
+
+  try {
+    const response = await fetch("/api/registrations", {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        id: data.get("id"),
+        categoryId: data.get("categoryId"),
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się zmienić kategorii.");
+
+    const index = registrationsState.findIndex((item) => item.id === payload.registration.id);
+    if (index >= 0) registrationsState[index] = payload.registration;
+    setMessage(message, payload.categoryChanged ? "Kategoria zapisana. Lista startowa dla zgłoszenia została zresetowana." : "Kategoria bez zmian.", "success");
+    renderAll();
+    openDetails(payload.registration);
+  } catch (error) {
+    setMessage(message, error.message || "Nie udało się zmienić kategorii.", "error");
+    submitButton.disabled = false;
   }
 }
 

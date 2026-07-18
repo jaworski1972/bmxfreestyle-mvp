@@ -1683,6 +1683,12 @@ h3 {
   gap: 12px;
 }
 
+.form-hint {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .status-editor .primary-btn {
   border: 0;
 }
