@@ -125,7 +125,7 @@ const partnerGroups = [
         name: "Gorzów Wielkopolski",
         key: "gorzow",
         role: "host_city",
-        logo: "/assets/partners/gorzow-wielkopolski.png",
+        logo: "/assets/partners/gorzow-wielkopolski.webp",
         alt: "Gorzów Wielkopolski",
         url: "",
         logoScale: 1,
@@ -134,7 +134,7 @@ const partnerGroups = [
         name: "Miasto i Gmina Bogatynia",
         key: "bogatynia",
         role: "host_city",
-        logo: "/assets/partners/bogatynia.png",
+        logo: "/assets/partners/bogatynia.webp",
         alt: "Miasto i Gmina Bogatynia",
         url: "",
         logoScale: 1.44,
@@ -149,7 +149,7 @@ const partnerGroups = [
         name: "JBL",
         key: "jbl",
         role: "sponsor",
-        logo: "/assets/partners/jbl.png",
+        logo: "/assets/partners/jbl.webp",
         alt: "JBL",
         url: "",
         logoScale: 1.3,
@@ -158,7 +158,7 @@ const partnerGroups = [
         name: "Monster Energy",
         key: "monster-energy",
         role: "sponsor",
-        logo: "/assets/partners/monster-energy.png",
+        logo: "/assets/partners/monster-energy.webp",
         alt: "Monster Energy",
         url: "",
         logoScale: 1.44,
@@ -167,7 +167,7 @@ const partnerGroups = [
         name: "Fox Racing",
         key: "fox-racing",
         role: "sponsor",
-        logo: "/assets/partners/fox-racing.png",
+        logo: "/assets/partners/fox-racing.webp",
         alt: "Fox Racing",
         url: "",
         logoScale: 1,
@@ -176,7 +176,7 @@ const partnerGroups = [
         name: "RideHub",
         key: "ridehub",
         role: "partner",
-        logo: "/assets/partners/ridehub.png",
+        logo: "/assets/partners/ridehub.webp",
         alt: "RideHub",
         url: "",
         logoScale: 1,
@@ -559,8 +559,8 @@ async function renderHome() {
   app.innerHTML = `
     <section class="hero home-hero image-hero" aria-label="Puchar Polski BMX Freestyle">
       <picture>
-        <source media="(max-width: 768px)" srcset="/assets/hero-puchar-polski-mobile.png">
-        <img src="/assets/hero-puchar-polski-desktop.png" alt="Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce.">
+        <source media="(max-width: 768px)" srcset="/assets/hero-puchar-polski-mobile.webp">
+        <img src="/assets/hero-puchar-polski-desktop.webp" alt="Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce.">
       </picture>
     </section>
     <div class="section-glow-separator" aria-hidden="true"></div>
