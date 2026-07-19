@@ -528,7 +528,7 @@ h3 {
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.24), rgba(5, 5, 5, 0.52)),
-    url("/assets/home-dark-bg-desktop.png") center top / cover no-repeat;
+    url("/assets/home-dark-bg-desktop.webp") center top / cover no-repeat;
   box-shadow: 0 26px 88px rgba(0, 0, 0, 0.42);
 }
 
@@ -1960,7 +1960,7 @@ body.checkin-body {
   position: relative;
   overflow: hidden;
   background-color: #050505;
-  background-image: url("/assets/home-dark-bg-desktop.png");
+  background-image: url("/assets/home-dark-bg-desktop.webp");
   background-size: cover;
   background-position: center top;
   background-repeat: repeat-y;
@@ -2071,7 +2071,7 @@ body.checkin-body {
   padding: clamp(52px, 9vw, 96px) clamp(22px, 5vw, 48px);
   background:
     linear-gradient(135deg, rgba(5, 6, 7, 0.98), rgba(18, 22, 26, 0.92)),
-    url("/assets/bmx-hero.png") center / cover;
+    url("/assets/bmx-hero.webp") center / cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0 0 8px 8px;
   color: var(--white);
@@ -2170,7 +2170,7 @@ body.checkin-body {
   padding: clamp(58px, 8vw, 94px) 0 clamp(68px, 9vw, 112px);
   overflow: hidden;
   background-color: #050505;
-  background-image: url("/assets/home-dark-bg-desktop.png");
+  background-image: url("/assets/home-dark-bg-desktop.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -2275,7 +2275,7 @@ body.checkin-body {
   padding: clamp(46px, 7vw, 84px) clamp(14px, 4vw, 36px) clamp(58px, 8vw, 100px);
   overflow: hidden;
   background-color: #050505;
-  background-image: url("/assets/home-dark-bg-desktop.png");
+  background-image: url("/assets/home-dark-bg-desktop.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -2732,7 +2732,7 @@ body.checkin-body {
   padding: 34px clamp(18px, 5vw, 70px) 46px;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.92), rgba(5, 5, 5, 1)),
-    url("/assets/home-dark-bg-desktop.png") center bottom / cover repeat-y;
+    url("/assets/home-dark-bg-desktop.webp") center bottom / cover repeat-y;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   color: var(--white);
 }
