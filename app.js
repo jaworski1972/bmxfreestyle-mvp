@@ -547,33 +547,42 @@ function categoryCards() {
 }
 
 async function renderHome() {
-  const events = await loadEvents();
-  const visibleEvents = events.length ? events : [fallbackEvent];
-  const signupEvents = visibleEvents.filter((event) => !registrationClosedReason(event));
-  const selectableEvents = signupEvents.length ? signupEvents : [defaultHomepageEvent(visibleEvents)];
   const params = new URLSearchParams(window.location.search);
   const requestedEventSlug = params.get("event");
-  const selectedEvent = selectableEvents.find((event) => event.slug === requestedEventSlug) || defaultHomepageEvent(selectableEvents);
-  const selectedCategories = await loadCategories(selectedEvent.id);
   const openInlineRegistration = params.get("register") === "1";
+
+  // Paint the hero + page shell immediately. It's static and shouldn't sit
+  // behind the /api/events + /api/categories round trips below — those only
+  // gate the signup section further down the page.
   app.innerHTML = `
     <section class="hero home-hero image-hero" aria-label="Puchar Polski BMX Freestyle">
       <picture>
         <source media="(max-width: 768px)" srcset="/assets/hero-puchar-polski-mobile.webp">
-        <img src="/assets/hero-puchar-polski-desktop.webp" alt="Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce.">
+        <img src="/assets/hero-puchar-polski-desktop.webp" alt="Puchar Polski BMX Freestyle. Nowy standard organizacji zawodów BMX Freestyle w Polsce." fetchpriority="high">
       </picture>
     </section>
     <div class="section-glow-separator" aria-hidden="true"></div>
-    <div class="home-dark-content">
-      ${fastSignupSection(selectableEvents, selectedEvent, selectedCategories)}
-      <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
-      ${SHOW_HOMEPAGE_EVENTS ? homepageEventsSection(visibleEvents) : ""}
-      ${SHOW_HOMEPAGE_FLOW ? homepageFlowSection() : ""}
-      ${SHOW_HOMEPAGE_CATEGORIES ? homepageCategoriesSection() : ""}
-      ${faqSection({ home: true })}
-      <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
-      ${partnersSection()}
-    </div>
+    <div class="home-dark-content" id="home-dynamic-content"></div>
+  `;
+
+  const events = await loadEvents();
+  const visibleEvents = events.length ? events : [fallbackEvent];
+  const signupEvents = visibleEvents.filter((event) => !registrationClosedReason(event));
+  const selectableEvents = signupEvents.length ? signupEvents : [defaultHomepageEvent(visibleEvents)];
+  const selectedEvent = selectableEvents.find((event) => event.slug === requestedEventSlug) || defaultHomepageEvent(selectableEvents);
+  const selectedCategories = await loadCategories(selectedEvent.id);
+
+  const dynamicContent = document.getElementById("home-dynamic-content");
+  if (!dynamicContent) return;
+  dynamicContent.innerHTML = `
+    ${fastSignupSection(selectableEvents, selectedEvent, selectedCategories)}
+    <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
+    ${SHOW_HOMEPAGE_EVENTS ? homepageEventsSection(visibleEvents) : ""}
+    ${SHOW_HOMEPAGE_FLOW ? homepageFlowSection() : ""}
+    ${SHOW_HOMEPAGE_CATEGORIES ? homepageCategoriesSection() : ""}
+    ${faqSection({ home: true })}
+    <div class="section-glow-separator section-glow-separator-light" aria-hidden="true"></div>
+    ${partnersSection()}
   `;
   setupFastSignup({ events: visibleEvents, initialCategories: selectedCategories, openInlineRegistration });
 }
