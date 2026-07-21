@@ -63,6 +63,17 @@ async function run() {
     });
   });
 
+  await withMockFetch(async (url, options) => {
+    const params = new URLSearchParams(options.body);
+    assert.equal(params.get("encoding"), "utf-8");
+    assert.equal(params.get("message"), "Zgłoszenie zaakceptowane. Pokaż QR.");
+    return response(JSON.stringify({ list: [{ id: "smsapi-utf-8" }] }));
+  }, async () => {
+    const result = await sendSms({ to: "+48500100107", message: "Zgłoszenie zaakceptowane. Pokaż QR." });
+    assert.equal(result.status, "sent");
+    assert.equal(result.providerMessageId, "smsapi-utf-8");
+  });
+
   await withMockFetch(async () => response(JSON.stringify({ error: 14, message: "Invalid from field" })), async () => {
     const supabase = fakeSupabase();
     const result = await sendSmsNotification({
