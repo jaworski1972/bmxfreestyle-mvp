@@ -141,6 +141,12 @@ function categoryAgeValidationError(category, age) {
       error: "Zawodnik poniżej 15. roku życia powinien zostać zgłoszony do kategorii JUNIOR U15.",
     };
   }
+  if (code === "PRO" && age < 16) {
+    return {
+      code: "pro_age_mismatch",
+      error: "Kategoria PRO jest przeznaczona dla zawodników powyżej 15. roku życia. Wybierz kategorię JUNIOR U15.",
+    };
+  }
   return null;
 }
 
@@ -347,7 +353,7 @@ module.exports = async function handler(request, response) {
       return;
     }
 
-    if ((category.requires_license || String(category.code || "").toUpperCase() === "PRO") && !requiredString(body, "licenseNumber")) {
+    if (category.requires_license && !requiredString(body, "licenseNumber")) {
       json(response, 400, {
         ok: false,
         code: "license_required",

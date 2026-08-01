@@ -22,7 +22,7 @@ const fallbackEvent = {
   rulesUrl: "",
   rulesBody: "",
   organizerMessage: "Zapisy są otwarte. Organizator potwierdzi przyjęcie zgłoszenia po weryfikacji danych.",
-  settings: { juniorMaxAge: 15, requireLicenseForPro: true },
+  settings: { juniorMaxAge: 15, requireLicenseForPro: false },
 };
 
 const fallbackCategories = [
@@ -31,10 +31,10 @@ const fallbackCategories = [
     eventId: "seed-event",
     code: "PRO",
     name: "PRO",
-    description: "Dla zawodników z licencją PZKol, UCI lub federacji krajowej.",
+    description: "Start deklaratywny — decyduje zawodnik. Licencja PZKol/UCI opcjonalna, uwzględniana w statystykach PZKol.",
     ageMin: 16,
     ageMax: null,
-    requiresLicense: true,
+    requiresLicense: false,
   },
   {
     id: "seed-category-amator",
@@ -191,8 +191,8 @@ const faqItems = [
     featured: true,
     question: "Czy kategoria PRO wymaga licencji?",
     answer: [
-      "Tak. Kategoria PRO jest rozgrywana jako Puchar Polski BMX Freestyle PZKol. W formularzu należy podać jedno pole: UCI ID / numer licencji.",
-      "Organizator może zweryfikować ważność licencji przed zaakceptowaniem zgłoszenia lub podczas check-inu.",
+      "Nie. Start w kategorii PRO jest deklaratywny — decyduje o tym wyłącznie zawodnik, licencja UCI / PZKol nie jest wymogiem formalnym.",
+      "W formularzu można opcjonalnie podać UCI ID / numer licencji. Zawodnicy z ważną licencją są uwzględniani w statystykach zawodów publikowanych przez PZKol.",
     ],
   },
   {
@@ -282,7 +282,7 @@ const faqItems = [
     featured: false,
     question: "Czy zawodnik niepełnoletni może startować w PRO?",
     answer: [
-      "Tak, jeśli posiada ważny UCI ID lub numer licencji, spełnia wymagania kategorii PRO i dostarczy wymagane zgody rodzica lub opiekuna.",
+      "Tak — start w PRO jest deklaratywny i nie wymaga licencji. Warunkiem jest spełnienie pozostałych wymagań kategorii PRO oraz dostarczenie wymaganych zgód rodzica lub opiekuna. Posiadana licencja UCI/PZKol jest opcjonalna i uwzględniana w statystykach PZKol.",
       "Granica wieku AMATOR/JUNIOR U15 nie jest stosowana do wybranej kategorii PRO.",
     ],
   },
@@ -531,17 +531,17 @@ async function loadConsents(eventId) {
 
 function categoryCards() {
   const descriptions = {
-    PRO: "Dla zawodników startujących z UCI ID / numerem licencji.",
+    PRO: "Start deklaratywny — decyduje zawodnik. Licencja UCI/PZKol opcjonalna.",
     AMATOR: "Dla zawodników, którzy w dniu zawodów mają co najmniej 15 lat.",
     JUNIOR: "Dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat.",
   };
 
   return fallbackCategories.map((category) => `
     <article class="category-card">
-      <span class="card-kicker">${category.requiresLicense ? "Licencja" : "Open"}</span>
+      <span class="card-kicker">${category.code === "PRO" ? "Deklaratywna" : category.requiresLicense ? "Licencja" : "Open"}</span>
       <strong>${categoryLabel(category.code)}</strong>
       <p>${descriptions[category.code] || category.description}</p>
-      ${category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Walidacja wieku</span>'}
+      ${category.code === "PRO" ? '<span class="status-pill">Licencja opcjonalna</span>' : category.requiresLicense ? '<span class="status-pill">Licencja wymagana</span>' : '<span class="status-pill">Walidacja wieku</span>'}
     </article>
   `).join("");
 }
@@ -688,7 +688,7 @@ function homepageCategoriesSection() {
 
 function categoryShortDescription(code) {
   const descriptions = {
-    PRO: "Dla zawodników z UCI ID / numerem licencji.",
+    PRO: "Start deklaratywny — licencja UCI/PZKol opcjonalna.",
     AMATOR: "Dla zawodników od 15. roku życia.",
     JUNIOR: "Dla młodszych zawodników.",
   };
@@ -1051,11 +1051,11 @@ function registrationFormHtml({ event, categories, consents, selectedCategory, f
           <div>
             <p class="eyebrow">Krok 3</p>
             <h2>Dane licencji</h2>
-            <p>Wpisz UCI ID zawodnika lub numer licencji wymagany dla kategorii PRO.</p>
+            <p>Start w kategorii PRO jest deklaratywny i zależy od zawodnika — licencja nie jest wymagana. Jeśli ją posiadasz, podaj UCI ID / numer licencji: zawodnicy z licencją są uwzględniani w statystykach zawodów publikowanych przez PZKol.</p>
           </div>
           <div class="field-grid">
-            <label class="full">UCI ID / numer licencji
-              <span>Wpisz UCI ID zawodnika lub numer licencji wymagany dla kategorii PRO.</span>
+            <label class="full">UCI ID / numer licencji <span>opcjonalnie</span>
+              <span>Podaj, jeśli posiadasz — zostaniesz uwzględniony w statystykach PZKol.</span>
               <input name="licenseNumber" />
             </label>
           </div>
@@ -1193,6 +1193,14 @@ function isLicenseRequired(category) {
   return Boolean(category?.requiresLicense || category?.requires_license);
 }
 
+function isProCategory(category) {
+  return String(category?.code || "").toUpperCase() === "PRO";
+}
+
+function showsLicenseField(category) {
+  return isLicenseRequired(category) || isProCategory(category);
+}
+
 function categoryAgeValidationMessage(category, age) {
   if (!category || !Number.isFinite(age)) return "";
   const code = String(category.code || "").toUpperCase();
@@ -1201,6 +1209,9 @@ function categoryAgeValidationMessage(category, age) {
   }
   if (code === "AMATOR" && age < 15) {
     return "Zawodnik poniżej 15. roku życia powinien zostać zgłoszony do kategorii JUNIOR U15.";
+  }
+  if (code === "PRO" && age < 16) {
+    return "Kategoria PRO jest przeznaczona dla zawodników powyżej 15. roku życia. Wybierz kategorię JUNIOR U15.";
   }
   return "";
 }
@@ -1248,8 +1259,9 @@ function setupRegistrationForm({ event, categories, consents, root = document, s
   function updateDynamicState() {
     const state = formState();
     const needsLicense = isLicenseRequired(state.category);
+    const showLicense = showsLicenseField(state.category);
 
-    licenseSection.hidden = !needsLicense;
+    licenseSection.hidden = !showLicense;
     setRequired([
       form.elements.licenseNumber,
     ], needsLicense);
@@ -1574,8 +1586,8 @@ function renderRules() {
           <h3>3. Charakter zawodów</h3>
           <ol>
             <li>Zawody obejmują kategorię PRO rozgrywaną jako Puchar Polski BMX Freestyle PZKol oraz otwarte konkurencje towarzyszące AMATOR i JUNIOR U15.</li>
-            <li>Kategoria PRO jest kategorią licencjonowaną.</li>
-            <li>Kategorie AMATOR i JUNIOR U15 są konkurencjami otwartymi i nie wymagają posiadania licencji sportowej.</li>
+            <li>Start w kategorii PRO ma charakter deklaratywny — o wyborze tej kategorii decyduje wyłącznie zawodnik, niezależnie od posiadania licencji sportowej.</li>
+            <li>Kategorie PRO, AMATOR i JUNIOR U15 nie wymagają posiadania licencji sportowej. Zawodnicy kategorii PRO posiadający ważną licencję PZKol/UCI są uwzględniani w statystykach zawodów publikowanych przez PZKol.</li>
             <li>Wyniki kategorii AMATOR i JUNIOR U15 nie stanowią wyników kategorii PRO i nie przyznają punktów do rankingów UCI ani innych oficjalnych klasyfikacji sportowych, chyba że komunikat organizacyjny stanowi inaczej.</li>
           </ol>
         </section>
@@ -1584,7 +1596,8 @@ function renderRules() {
           <h3>4. Kategorie startowe</h3>
           <h4>4.1. PRO</h4>
           <ol>
-            <li>PRO jest kategorią przeznaczoną dla zawodników posiadających ważny UCI ID lub numer licencji uprawniający do udziału w zawodach.</li>
+            <li>PRO jest kategorią otwartą pod względem formalnym — o starcie w niej decyduje wyłącznie deklaracja zawodnika. Posiadanie licencji sportowej (UCI ID / numer licencji PZKol) nie jest warunkiem udziału.</li>
+            <li>Kategoria PRO jest przeznaczona dla zawodników, którzy w dniu zawodów ukończyli 15. rok życia. Zawodnicy młodsi startują w kategorii JUNIOR U15.</li>
             <li>Kobiety i mężczyźni mogą uczestniczyć w tej samej sesji treningowej, kwalifikacyjnej lub finałowej, jeżeli pozwala na to format wydarzenia.</li>
             <li>Dla kobiet prowadzona jest odrębna klasyfikacja wyników.</li>
             <li>Organizator może dostosować sposób przeprowadzenia rywalizacji kobiet do liczby zgłoszonych zawodniczek, zachowując odrębną klasyfikację.</li>
@@ -1619,10 +1632,10 @@ function renderRules() {
         <section>
           <h3>6. Licencja w kategorii PRO</h3>
           <ol>
-            <li>Zawodnik zgłaszający się do kategorii PRO podaje w formularzu UCI ID / numer licencji.</li>
-            <li>Organizator ma prawo zweryfikować ważność licencji przed zaakceptowaniem zgłoszenia oraz podczas check-inu.</li>
-            <li>Brak ważnej licencji może skutkować niedopuszczeniem zawodnika do udziału w kategorii PRO.</li>
-            <li>Jeżeli zawodnik nie spełnia warunków kategorii PRO, Organizator może zaproponować udział w kategorii otwartej, o ile zawodnik spełnia jej kryteria, dostępne są wolne miejsca i zmiana nie narusza harmonogramu ani zasad sportowych wydarzenia.</li>
+            <li>Start w kategorii PRO jest deklaratywny — decyduje o nim wyłącznie zawodnik. Posiadanie ważnej licencji UCI/PZKol nie jest warunkiem dopuszczenia do udziału w kategorii PRO.</li>
+            <li>Zawodnik zgłaszający się do kategorii PRO może opcjonalnie podać w formularzu UCI ID / numer licencji.</li>
+            <li>Zawodnicy, którzy podadzą ważną licencję, są uwzględniani w statystykach zawodów publikowanych przez Polski Związek Kolarski (PZKol).</li>
+            <li>Organizator może zweryfikować podany numer licencji, w tym w trakcie check-inu, wyłącznie w celu prawidłowego ujęcia zawodnika w statystykach PZKol.</li>
             <li>Kategoria PRO jest rozgrywana zgodnie z właściwymi przepisami sportowymi PZKol i UCI dotyczącymi BMX Freestyle, niniejszym Regulaminem oraz komunikatem organizacyjnym wydarzenia.</li>
           </ol>
         </section>

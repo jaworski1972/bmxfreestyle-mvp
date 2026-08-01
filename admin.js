@@ -744,7 +744,7 @@ function resetEventForm() {
   eventForm.elements.status.value = "planned";
   eventForm.elements.type.value = "polish_cup";
   eventForm.elements.juniorMaxAge.value = "15";
-  eventForm.elements.requireLicenseForPro.checked = true;
+  eventForm.elements.requireLicenseForPro.checked = false;
   setMessage(eventMessage, "Tworzysz nowe wydarzenie.", "info");
 }
 
@@ -763,7 +763,7 @@ function fillEventForm(event) {
   eventForm.elements.registrationStartsAt.value = formatDateTimeLocal(event.registrationStartsAt);
   eventForm.elements.registrationEndsAt.value = formatDateTimeLocal(event.registrationEndsAt);
   eventForm.elements.juniorMaxAge.value = event.settings?.juniorMaxAge ?? 15;
-  eventForm.elements.requireLicenseForPro.checked = event.settings?.requireLicenseForPro !== false;
+  eventForm.elements.requireLicenseForPro.checked = event.settings?.requireLicenseForPro === true;
   eventForm.elements.rulesUrl.value = event.rulesUrl || "";
   eventForm.elements.description.value = event.description || "";
   eventForm.elements.organizerMessage.value = event.organizerMessage || "";

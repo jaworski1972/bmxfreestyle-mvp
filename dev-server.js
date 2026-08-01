@@ -29,7 +29,7 @@ const mockEvents = [
     rulesUrl: "",
     rulesBody: "",
     organizerMessage: "Zapisy są otwarte. Organizator potwierdzi przyjęcie zgłoszenia po weryfikacji danych.",
-    settings: { juniorMaxAge: 15, requireLicenseForPro: true },
+    settings: { juniorMaxAge: 15, requireLicenseForPro: false },
   },
   {
     id: "closed-event",
@@ -49,12 +49,12 @@ const mockEvents = [
     rulesUrl: "",
     rulesBody: "",
     organizerMessage: "Zapisy na to wydarzenie są zamknięte.",
-    settings: { juniorMaxAge: 15, requireLicenseForPro: true },
+    settings: { juniorMaxAge: 15, requireLicenseForPro: false },
   },
 ];
 
 const mockCategories = [
-  { id: "seed-category-pro", eventId: "seed-event", code: "PRO", name: "PRO", description: "Dla zawodników z licencją PZKol, UCI lub federacji krajowej.", sortOrder: 1, capacity: 40, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: true },
+  { id: "seed-category-pro", eventId: "seed-event", code: "PRO", name: "PRO", description: "Start deklaratywny — licencja PZKol/UCI opcjonalna, uwzględniana w statystykach PZKol.", sortOrder: 1, capacity: 40, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: false },
   { id: "seed-category-amator", eventId: "seed-event", code: "AMATOR", name: "AMATOR", description: "Otwarta kategoria dla riderów od 15. roku życia.", sortOrder: 2, capacity: 50, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: false },
   { id: "seed-category-junior", eventId: "seed-event", code: "JUNIOR", name: "JUNIOR", description: "Dla młodszych zawodników. Granica wieku wynika z ustawień wydarzenia.", sortOrder: 3, capacity: 30, isActive: true, genderScope: "open", ageMin: null, ageMax: 15, requiresLicense: false },
   { id: "closed-category-amator", eventId: "closed-event", code: "AMATOR", name: "AMATOR", description: "Kategoria testowa.", sortOrder: 1, capacity: 20, isActive: true, genderScope: "open", ageMin: 16, ageMax: null, requiresLicense: false },
@@ -303,7 +303,7 @@ function eventPayload(body, existing = {}) {
     organizerMessage: nullableText(body.organizerMessage ?? body.organizer_message),
     settings: {
       juniorMaxAge: nullableNumber(rawSettings.juniorMaxAge ?? body.juniorMaxAge) ?? existing.settings?.juniorMaxAge ?? 15,
-      requireLicenseForPro: booleanValue(rawSettings.requireLicenseForPro ?? body.requireLicenseForPro, existing.settings?.requireLicenseForPro ?? true),
+      requireLicenseForPro: booleanValue(rawSettings.requireLicenseForPro ?? body.requireLicenseForPro, existing.settings?.requireLicenseForPro ?? false),
     },
     createdAt: existing.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -551,8 +551,12 @@ async function handleMockApi(request, response) {
       sendJson(response, 400, { ok: false, code: "amator_age_mismatch", error: "Zawodnik poniżej 15. roku życia powinien zostać zgłoszony do kategorii JUNIOR U15." });
       return true;
     }
+    if (category.code === "PRO" && age < 16) {
+      sendJson(response, 400, { ok: false, code: "pro_age_mismatch", error: "Kategoria PRO jest przeznaczona dla zawodników powyżej 15. roku życia. Wybierz kategorię JUNIOR U15." });
+      return true;
+    }
 
-    if ((category.requiresLicense || category.code === "PRO") && !normalizeText(body.licenseNumber)) {
+    if (category.requiresLicense && !normalizeText(body.licenseNumber)) {
       sendJson(response, 400, { ok: false, code: "license_required", error: "Podaj UCI ID lub numer licencji." });
       return true;
     }

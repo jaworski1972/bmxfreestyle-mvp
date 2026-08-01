@@ -68,7 +68,7 @@ function eventPayload(body, partial = false) {
     ["organizer_message", () => nullableText(body.organizerMessage ?? body.organizer_message, 3000)],
     ["settings", () => ({
       juniorMaxAge: nullableNumber(settings.juniorMaxAge ?? body.juniorMaxAge) ?? 15,
-      requireLicenseForPro: Boolean(settings.requireLicenseForPro ?? body.requireLicenseForPro ?? true),
+      requireLicenseForPro: Boolean(settings.requireLicenseForPro ?? body.requireLicenseForPro ?? false),
     })],
   ].forEach(([key, getter]) => {
     if (!partial || Object.prototype.hasOwnProperty.call(body, key) || Object.prototype.hasOwnProperty.call(body, key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()))) {
