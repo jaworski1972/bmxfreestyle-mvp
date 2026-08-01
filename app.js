@@ -191,8 +191,9 @@ const faqItems = [
     featured: true,
     question: "Czy kategoria PRO wymaga licencji?",
     answer: [
-      "Nie. Start w kategorii PRO jest deklaratywny — decyduje o tym wyłącznie zawodnik, licencja UCI / PZKol nie jest wymogiem formalnym.",
+      "Nie. Zgłoszenie do kategorii PRO ma charakter deklaratywny — zawodnik sam wskazuje tę kategorię w formularzu, a licencja UCI / PZKol nie jest do tego wymogiem formalnym.",
       "W formularzu można opcjonalnie podać UCI ID / numer licencji. Zawodnicy z ważną licencją są uwzględniani w statystykach zawodów publikowanych przez PZKol.",
+      "Ostateczną decyzję podejmuje Organizator podczas weryfikacji zgłoszeń: może potwierdzić start w kategorii PRO albo zdecydować o przypisaniu zawodnika do innej kategorii (np. AMATOR), jeśli uzna to za zasadne.",
     ],
   },
   {
@@ -1632,9 +1633,10 @@ function renderRules() {
         <section>
           <h3>6. Licencja w kategorii PRO</h3>
           <ol>
-            <li>Start w kategorii PRO jest deklaratywny — decyduje o nim wyłącznie zawodnik. Posiadanie ważnej licencji UCI/PZKol nie jest warunkiem dopuszczenia do udziału w kategorii PRO.</li>
+            <li>Zgłoszenie do kategorii PRO ma charakter deklaratywny — wyboru tej kategorii dokonuje zawodnik w formularzu zgłoszeniowym. Posiadanie ważnej licencji UCI/PZKol nie jest warunkiem dopuszczenia do udziału w kategorii PRO.</li>
             <li>Zawodnik zgłaszający się do kategorii PRO może opcjonalnie podać w formularzu UCI ID / numer licencji.</li>
             <li>Zawodnicy, którzy podadzą ważną licencję, są uwzględniani w statystykach zawodów publikowanych przez Polski Związek Kolarski (PZKol).</li>
+            <li>Organizator weryfikuje zgłoszenia i podejmuje ostateczną decyzję o przyjęciu zawodnika do kategorii PRO. Organizator może zamiast tego przypisać zawodnika do innej kategorii (np. AMATOR), jeżeli uzna to za zasadne, o ile zawodnik spełnia jej kryteria.</li>
             <li>Organizator może zweryfikować podany numer licencji, w tym w trakcie check-inu, wyłącznie w celu prawidłowego ujęcia zawodnika w statystykach PZKol.</li>
             <li>Kategoria PRO jest rozgrywana zgodnie z właściwymi przepisami sportowymi PZKol i UCI dotyczącymi BMX Freestyle, niniejszym Regulaminem oraz komunikatem organizacyjnym wydarzenia.</li>
           </ol>
