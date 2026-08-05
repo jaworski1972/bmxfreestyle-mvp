@@ -799,6 +799,33 @@ h3 {
   display: none;
 }
 
+.consent-select-all {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--lime-strong);
+  border-radius: 8px;
+  background: rgba(191, 240, 0, 0.08);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.consent-select-all[hidden] {
+  display: none;
+}
+
+.consent-select-all input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--lime-strong);
+}
+
+.consent-select-all input:disabled + span {
+  opacity: 0.5;
+}
+
 .consent-list {
   display: grid;
   gap: 12px;

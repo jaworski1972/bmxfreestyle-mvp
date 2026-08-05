@@ -1088,6 +1088,10 @@ function registrationFormHtml({ event, categories, consents, selectedCategory, f
             <p class="eyebrow">Krok 5</p>
             <h2>Zgody i oświadczenia</h2>
           </div>
+          <label class="consent-select-all" ${consents.length ? "" : "hidden"}>
+            <input type="checkbox" id="consentSelectAll" ${formDisabled ? "disabled" : ""} />
+            <span>Zaznacz wszystkie zgody</span>
+          </label>
           <div class="consent-list" id="consentList">
             ${consents.length ? consents.map((consent) => `
               <label
@@ -1243,11 +1247,33 @@ function setupRegistrationForm({ event, categories, consents, root = document, s
   const licenseSection = root.querySelector("#licenseSection");
   const guardianSection = root.querySelector("#guardianSection");
   const consentItems = [...root.querySelectorAll(".consent-item")];
+  const consentSelectAll = root.querySelector("#consentSelectAll");
   const summary = root.querySelector("#formSummary");
   const message = root.querySelector("#formMessage");
   const submitButton = form.querySelector(".submit-btn");
   const changeSelectionButton = root.querySelector(".inline-change-selection");
   let dirty = false;
+
+  function syncConsentSelectAll() {
+    if (!consentSelectAll) return;
+    const activeInputs = consentItems
+      .filter((item) => !item.hidden)
+      .map((item) => item.querySelector("input"))
+      .filter((input) => !input.disabled);
+
+    if (!activeInputs.length) {
+      consentSelectAll.checked = false;
+      consentSelectAll.indeterminate = false;
+      consentSelectAll.disabled = true;
+      return;
+    }
+
+    consentSelectAll.disabled = false;
+    const allChecked = activeInputs.every((input) => input.checked);
+    const anyChecked = activeInputs.some((input) => input.checked);
+    consentSelectAll.checked = allChecked;
+    consentSelectAll.indeterminate = !allChecked && anyChecked;
+  }
 
   function formState() {
     const age = calculateAge(form.elements.birthDate.value, eventStartDate(event));
@@ -1282,6 +1308,7 @@ function setupRegistrationForm({ event, categories, consents, root = document, s
       input.disabled = !visible;
       input.required = visible && input.dataset.required === "true";
     });
+    syncConsentSelectAll();
 
     if (state.age === null) {
       ageStatus.textContent = "Podaj datę urodzenia, aby sprawdzić wymagania kategorii i opiekuna.";
@@ -1437,6 +1464,22 @@ function setupRegistrationForm({ event, categories, consents, root = document, s
     }
   }
 
+  consentSelectAll?.addEventListener("input", (event) => {
+    event.stopPropagation();
+  });
+  consentSelectAll?.addEventListener("change", (event) => {
+    event.stopPropagation();
+    const checked = consentSelectAll.checked;
+    consentSelectAll.indeterminate = false;
+    consentItems.forEach((item) => {
+      if (item.hidden) return;
+      const input = item.querySelector("input");
+      if (input.disabled) return;
+      input.checked = checked;
+    });
+    dirty = true;
+    updateDynamicState();
+  });
   form.addEventListener("input", () => {
     dirty = true;
     updateDynamicState();
