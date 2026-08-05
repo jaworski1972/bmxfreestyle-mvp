@@ -1017,7 +1017,7 @@ function registrationFormHtml({ event, categories, consents, selectedCategory, f
                     <strong>${escapeHtml(categoryLabel(code))}</strong>
                     <small>${escapeHtml(categoryShortDescription(code))}</small>
                     <em>${escapeHtml(categoryCapacityLabel(category))}</em>
-                    <em>${isLicenseRequired(category) ? "Licencja wymagana" : "Walidacja wieku"}</em>
+                    <em>${isProCategory(category) ? "Licencja opcjonalna" : isLicenseRequired(category) ? "Licencja wymagana" : "Walidacja wieku"}</em>
                   </span>
                 </label>
               `;
