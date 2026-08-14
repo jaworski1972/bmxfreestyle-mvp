@@ -6,9 +6,8 @@ const { enabled, sendSmsNotification } = require("../lib/sms");
 const {
   ACCEPTED_REGISTRATION_MESSAGE,
   DUPLICATE_REGISTRATION_MESSAGE,
-  WAITLIST_REGISTRATION_MESSAGE,
   duplicateIdentityMatches,
-  statusForCapacity,
+  groupForCapacity,
 } = require("../lib/registration-limits");
 
 function requiredString(body, key) {
@@ -175,14 +174,17 @@ async function findDuplicate(supabase, eventId, payload) {
   return (data || []).find((registration) => duplicateIdentityMatches(registration, payload)) || null;
 }
 
-async function occupiedCountForCategory(supabase, categoryId) {
-  const { count, error } = await supabase
-    .from("registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("category_id", categoryId)
-    .in("status", ["pending_review", "accepted", "needs_info"]);
-  if (error) throw error;
-  return count || 0;
+function occupiedCountForGroupFactory(supabase, categoryId) {
+  return async function occupiedCountForGroup(groupNumber) {
+    const { count, error } = await supabase
+      .from("registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("category_id", categoryId)
+      .eq("group_number", groupNumber)
+      .in("status", ["pending_review", "accepted", "needs_info"]);
+    if (error) throw error;
+    return count || 0;
+  };
 }
 
 function isMissingRpc(error) {
@@ -222,6 +224,7 @@ async function insertRegistrationWithFallback(supabase, { registration, event, c
       data: {
         id: result.id,
         status: result.status,
+        group_number: result.group_number,
         confirmation_token: result.confirmation_token,
         created_at: result.created_at,
       },
@@ -240,18 +243,18 @@ async function insertRegistrationWithFallback(supabase, { registration, event, c
     };
   }
 
-  const capacityDecision = statusForCapacity(category, await occupiedCountForCategory(supabase, category.id));
+  const groupDecision = await groupForCapacity(category, occupiedCountForGroupFactory(supabase, category.id));
   const { data, error } = await supabase
     .from("registrations")
-    .insert({ ...registration, status: capacityDecision.status })
-    .select("id,status,confirmation_token,created_at")
+    .insert({ ...registration, status: groupDecision.status, group_number: groupDecision.groupNumber })
+    .select("id,status,group_number,confirmation_token,created_at")
     .single();
 
   if (error) throw error;
   return {
     ok: true,
     data,
-    message: capacityDecision.message,
+    message: groupDecision.message,
   };
 }
 
@@ -453,7 +456,8 @@ module.exports = async function handler(request, response) {
 
     const storedRegistration = { ...finalRegistration, id: data.id, confirmation_token: data.confirmation_token };
     const confirmUrl = confirmationUrl(data.confirmation_token);
-    const smsStatus = data.status === "waitlist" ? "lista rezerwowa" : "oczekuje na weryfikację";
+    const groupNumber = data.group_number || 1;
+    const smsStatus = groupNumber > 1 ? `oczekuje na weryfikację (Grupa ${groupNumber})` : "oczekuje na weryfikację";
     const smsMessage = `BMX Series: zgłoszenie przyjęte do systemu. Status: ${smsStatus}. Potwierdzenie i QR: ${confirmUrl}`;
     const sms = await sendSmsNotification({
       supabase,
@@ -468,11 +472,10 @@ module.exports = async function handler(request, response) {
       ok: true,
       registration: data,
       status: data.status,
+      groupNumber,
       email,
       sms,
-      message: data.status === "waitlist"
-        ? (insertResult.message || WAITLIST_REGISTRATION_MESSAGE)
-        : (insertResult.message || ACCEPTED_REGISTRATION_MESSAGE),
+      message: insertResult.message || ACCEPTED_REGISTRATION_MESSAGE,
     });
   } catch (error) {
     json(response, 500, { ok: false, error: error.message || "Nie udało się zapisać zgłoszenia." });

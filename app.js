@@ -255,8 +255,8 @@ const faqItems = [
     featured: true,
     question: "Czy można zapisać się na miejscu?",
     answer: [
-      "Tak, ale wyłącznie wtedy, gdy pozostaną wolne miejsca.",
-      "Jeżeli limit uczestników zostanie wyczerpany podczas zapisów internetowych, rejestracja na miejscu nie będzie prowadzona.",
+      "Zapisy internetowe są zawsze otwarte — po zapełnieniu limitu w danej kategorii system automatycznie tworzy kolejną grupę startową.",
+      "Zapisy na miejscu (poza systemem) są prowadzone wyłącznie za zgodą Organizatora, w zależności od możliwości logistycznych i harmonogramu danego wydarzenia.",
       "Najbezpieczniej zapisać się wcześniej przez stronę.",
     ],
   },
@@ -328,7 +328,7 @@ const faqItems = [
     featured: false,
     question: "Co się stanie, jeśli zawodnik spóźni się na check-in?",
     answer: [
-      "Spóźnienie może skutkować niedopuszczeniem do startu albo przekazaniem miejsca osobie z listy rezerwowej.",
+      "Spóźnienie może skutkować niedopuszczeniem do startu w danej grupie startowej.",
       "Godziny check-inu należy sprawdzić w komunikacie organizacyjnym konkretnego wydarzenia.",
     ],
   },
@@ -351,12 +351,13 @@ const faqItems = [
     ],
   },
   {
-    id: "waitlist",
+    id: "groups",
     featured: false,
-    question: "Co oznacza lista rezerwowa?",
+    question: "Co się dzieje, gdy limit miejsc w kategorii się zapełni?",
     answer: [
-      "Lista rezerwowa oznacza, że limit miejsc został czasowo wyczerpany.",
-      "Zawodnik może zostać zaakceptowany, jeśli zwolni się miejsce albo organizator zwiększy limit uczestników.",
+      "Po zapełnieniu limitu miejsc w danej kategorii system automatycznie otwiera kolejną grupę startową (Grupa 2, Grupa 3 itd.) z takim samym limitem miejsc.",
+      "Zgłoszenie jest przyjmowane od razu, bez listy rezerwowej — w potwierdzeniu i wiadomości SMS znajduje się informacja o przypisanej grupie.",
+      "Każda grupa startuje w osobnym bloku czasowym — szczegóły w harmonogramie danego wydarzenia.",
     ],
   },
   {
@@ -698,12 +699,11 @@ function categoryShortDescription(code) {
 
 function categoryCapacityLabel(category = {}) {
   if (category.isActive === false || category.is_active === false) return "Zapisy zamknięte";
-  if (category.isFull || category.is_full) return "Zapisy na listę rezerwową";
   if (category.status) return statusLabel(category.status);
   if (category.capacity === null || category.capacity === undefined || category.capacity === "") return "Zapisy otwarte";
-  const occupied = Number(category.occupiedCount || 0);
-  const capacity = Number(category.capacity);
-  if (Number.isFinite(occupied) && Number.isFinite(capacity) && occupied >= capacity) return "Zapisy na listę rezerwową";
+  const groups = Array.isArray(category.groups) ? category.groups : null;
+  const activeGroupNumber = groups && groups.length ? groups[groups.length - 1].groupNumber : 1;
+  if (activeGroupNumber > 1) return `Zapisy otwarte (Grupa ${activeGroupNumber})`;
   return "Zapisy otwarte";
 }
 
@@ -1427,12 +1427,12 @@ function setupRegistrationForm({ event, categories, consents, root = document, s
       }
 
       const state = formState();
-      const waitlist = payload.status === "waitlist" || payload.registration?.status === "waitlist";
-      const statusText = waitlist
-        ? "lista rezerwowa"
+      const groupNumber = Number(payload.groupNumber || payload.registration?.group_number || 1);
+      const statusText = groupNumber > 1
+        ? `oczekuje na weryfikację organizatora (Grupa ${groupNumber})`
         : "oczekuje na weryfikację organizatora";
-      const statusNotice = waitlist
-        ? "Limit miejsc w tej kategorii został wyczerpany. Zgłoszenie zostało dodane do listy rezerwowej."
+      const statusNotice = groupNumber > 1
+        ? `Limit miejsc w Grupie 1 tej kategorii został wyczerpany — zgłoszenie zostało przyjęte do Grupy ${groupNumber}. Status: oczekuje na weryfikację organizatora. Nie jest to jeszcze automatyczna akceptacja startu.`
         : "Status: oczekuje na weryfikację organizatora. Nie jest to jeszcze automatyczna akceptacja startu.";
       const confirmationLink = payload.registration?.confirmation_token
         ? `/potwierdz?token=${encodeURIComponent(payload.registration.confirmation_token)}`
@@ -1689,12 +1689,10 @@ function renderRules() {
           <h3>7. Zgłoszenia</h3>
           <ol>
             <li>Podstawową formą zgłoszenia są zapisy internetowe prowadzone przez stronę <a href="https://www.bmxseries.pl">https://www.bmxseries.pl</a>.</li>
-            <li>Organizator może zamknąć zapisy internetowe przed planowanym terminem po wyczerpaniu limitu miejsc.</li>
-            <li>Zapisy na miejscu mogą zostać uruchomione wyłącznie wtedy, gdy po zakończeniu lub w trakcie zapisów internetowych pozostają wolne miejsca.</li>
-            <li>Jeżeli limit miejsc zostanie wyczerpany przez zgłoszenia internetowe, Organizator nie prowadzi zapisów na miejscu.</li>
-            <li>Organizator może ustanowić listę rezerwową.</li>
-            <li>Zgłoszenie może otrzymać status: oczekuje na weryfikację, zaakceptowane, wymaga uzupełnienia, odrzucone albo lista rezerwowa.</li>
-            <li>Organizator może odmówić przyjęcia zgłoszenia z powodu wyczerpania limitu miejsc, niespełnienia kryteriów kategorii, podania niepełnych lub nieprawdziwych danych, braku wymaganych zgód, braku ważnej licencji w kategorii PRO albo wcześniejszych poważnych naruszeń zasad bezpieczeństwa.</li>
+            <li>Każda kategoria ma limit miejsc w jednej grupie startowej. Po jego wyczerpaniu system automatycznie otwiera kolejną grupę startową (Grupa 2, Grupa 3 itd.) z takim samym limitem — zgłoszenie jest przyjmowane do systemu bez listy rezerwowej.</li>
+            <li>Zapisy na miejscu mogą zostać uruchomione wyłącznie za zgodą Organizatora, w szczególności ze względów logistycznych lub czasowych związanych z harmonogramem wydarzenia.</li>
+            <li>Zgłoszenie może otrzymać status: oczekuje na weryfikację, zaakceptowane, wymaga uzupełnienia albo odrzucone.</li>
+            <li>Organizator może odmówić przyjęcia zgłoszenia z powodu niespełnienia kryteriów kategorii, podania niepełnych lub nieprawdziwych danych, braku wymaganych zgód, braku ważnej licencji w kategorii PRO albo wcześniejszych poważnych naruszeń zasad bezpieczeństwa.</li>
           </ol>
         </section>
 
@@ -1717,7 +1715,7 @@ function renderRules() {
             <li>Kod QR lub link potwierdzenia służy do identyfikacji zgłoszenia w systemie.</li>
             <li>Posiadanie kodu QR nie stanowi samodzielnej gwarancji dopuszczenia do udziału.</li>
             <li>O dopuszczeniu decyduje aktualny status zgłoszenia oraz prawidłowe przejście check-inu.</li>
-            <li>Nieobecność podczas check-inu może skutkować skreśleniem z listy startowej i przekazaniem miejsca osobie z listy rezerwowej.</li>
+            <li>Nieobecność podczas check-inu może skutkować skreśleniem z listy startowej danej grupy.</li>
           </ol>
         </section>
 
