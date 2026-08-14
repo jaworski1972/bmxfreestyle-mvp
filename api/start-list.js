@@ -27,7 +27,6 @@ module.exports = async function handler(request, response) {
       .select(START_LIST_SELECT)
       .eq("event_id", eventId)
       .eq("category_id", categoryId)
-      .order("group_number", { ascending: true, nullsFirst: false })
       .order("start_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true });
 

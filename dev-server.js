@@ -3,7 +3,6 @@ const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
 const { normalizeSmsPhone, smsRecipientsFromRegistrations } = require("./lib/sms");
-const { groupForCapacity } = require("./lib/registration-limits");
 
 const port = Number(process.env.PORT || 5178);
 const root = __dirname;
@@ -590,20 +589,11 @@ async function handleMockApi(request, response) {
       return true;
     }
 
-    const groupDecision = await groupForCapacity(category, async (groupNumber) => (
-      registrations.filter((existing) => (
-        existing.category_id === category.id
-        && existing.group_number === groupNumber
-        && ["pending_review", "accepted", "needs_info"].includes(existing.status)
-      )).length
-    ));
-
     const registration = {
       id: `local-${Date.now()}`,
       event_id: event.id,
       category_id: category.id,
-      status: groupDecision.status,
-      group_number: groupDecision.groupNumber,
+      status: "pending_review",
       checkin_status: "not_checked_in",
       checked_in_at: null,
       start_order: null,
@@ -637,7 +627,7 @@ async function handleMockApi(request, response) {
       updated_at: new Date().toISOString(),
     };
     registrations.push(registration);
-    sendJson(response, 201, { ok: true, registration, status: registration.status, groupNumber: registration.group_number, email: { sent: false, skipped: true }, message: groupDecision.message });
+    sendJson(response, 201, { ok: true, registration, status: registration.status, email: { sent: false, skipped: true }, message: "Zgłoszenie zostało przyjęte do systemu i oczekuje na weryfikację organizatora." });
     return true;
   }
 

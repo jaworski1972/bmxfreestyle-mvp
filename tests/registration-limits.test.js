@@ -5,12 +5,11 @@ const {
   availabilityForCategory,
   capacityDisplay,
   duplicateIdentityMatches,
-  groupForCapacity,
   statusForCapacity,
   statusOccupiesCapacity,
 } = require("../lib/registration-limits");
 
-async function run() {
+function run() {
   assert.equal(
     duplicateIdentityMatches(
       { first_name: " Jan   Kowalski ", last_name: " Nowak ", birth_date: "2010-08-16", status: "rejected" },
@@ -71,31 +70,6 @@ async function run() {
   assert.equal(capacityDisplay({ capacity: null }), "Brak limitu miejsc");
   assert.equal(capacityDisplay({ capacity: 20, occupiedCount: 20 }), "20 / 20 miejsc zajętych — lista rezerwowa");
   assert.equal(DUPLICATE_REGISTRATION_MESSAGE.startsWith("Ten zawodnik jest już zapisany"), true);
-
-  // groupForCapacity: bez limitu zawsze trafia do grupy 1
-  const unlimited = await groupForCapacity({ capacity: null }, async () => 999);
-  assert.equal(unlimited.groupNumber, 1);
-  assert.equal(unlimited.status, "pending_review");
-
-  // groupForCapacity: grupa 1 ma miejsce
-  const roomInGroupOne = await groupForCapacity({ capacity: 20 }, async (groupNumber) => (groupNumber === 1 ? 15 : 0));
-  assert.equal(roomInGroupOne.groupNumber, 1);
-  assert.equal(roomInGroupOne.status, "pending_review");
-
-  // groupForCapacity: grupa 1 pełna -> przydział do grupy 2
-  const overflowToGroupTwo = await groupForCapacity({ capacity: 20 }, async (groupNumber) => (groupNumber === 1 ? 20 : 3));
-  assert.equal(overflowToGroupTwo.groupNumber, 2);
-  assert.equal(overflowToGroupTwo.message.includes("Grupa 2"), true);
-
-  // groupForCapacity: grupy 1 i 2 pełne -> przydział do grupy 3
-  const overflowToGroupThree = await groupForCapacity({ capacity: 20 }, async (groupNumber) => (groupNumber <= 2 ? 20 : 0));
-  assert.equal(overflowToGroupThree.groupNumber, 3);
-  assert.equal(overflowToGroupThree.message.includes("Grupa 3"), true);
 }
 
-run().then(() => {
-  console.log("registration-limits.test.js: OK");
-}).catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+run();

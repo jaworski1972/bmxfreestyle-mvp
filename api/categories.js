@@ -1,8 +1,8 @@
 const { requireAdmin } = require("../lib/admin-auth");
 const { cleanText, getSupabase, json, readBody } = require("../lib/supabase");
-const { availabilityForCategory, capacityDisplay, groupBreakdownForCategory } = require("../lib/registration-limits");
+const { availabilityForCategory, capacityDisplay } = require("../lib/registration-limits");
 
-function normalizeCategory(row = {}, availability = {}, groups = []) {
+function normalizeCategory(row = {}, availability = {}) {
   const category = {
     id: row.id,
     eventId: row.event_id,
@@ -25,8 +25,6 @@ function normalizeCategory(row = {}, availability = {}, groups = []) {
     isUnlimited: availability.isUnlimited ?? category.capacity === null,
     isFull: availability.isFull ?? false,
     capacityLabel: capacityDisplay({ ...category, ...availability }),
-    groups,
-    groupCount: groups.length || 1,
   };
 }
 
@@ -103,7 +101,7 @@ module.exports = async function handler(request, response) {
 
       const { data: registrations, error: registrationsError } = await supabase
         .from("registrations")
-        .select("id,category_id,status,group_number")
+        .select("id,category_id,status")
         .eq("event_id", eventId);
       if (registrationsError) throw registrationsError;
 
@@ -111,8 +109,7 @@ module.exports = async function handler(request, response) {
         ok: true,
         categories: (data || []).map((category) => {
           const availability = availabilityForCategory(category, registrations || []);
-          const groups = groupBreakdownForCategory(category, registrations || []);
-          return normalizeCategory(category, availability, groups);
+          return normalizeCategory(category, availability);
         }),
       });
       return;

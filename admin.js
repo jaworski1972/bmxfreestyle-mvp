@@ -256,7 +256,6 @@ function renderDashboard() {
     accepted: registrationsState.filter((item) => item.status === "accepted").length,
     rejected: registrationsState.filter((item) => item.status === "rejected").length,
     waitlist: registrationsState.filter((item) => item.status === "waitlist").length,
-    overflowGroups: registrationsState.filter((item) => Number(item.group_number || 1) > 1).length,
     pro: registrationsState.filter((item) => categoryCode(item) === "PRO").length,
     amator: registrationsState.filter((item) => categoryCode(item) === "AMATOR").length,
     junior: registrationsState.filter((item) => categoryCode(item) === "JUNIOR").length,
@@ -268,8 +267,7 @@ function renderDashboard() {
     ["Oczekujące", counts.pending],
     ["Zaakceptowane", counts.accepted],
     ["Odrzucone", counts.rejected],
-    ["Rezerwowa (historyczne)", counts.waitlist],
-    ["W kolejnych grupach", counts.overflowGroups],
+    ["Rezerwowa", counts.waitlist],
     ["PRO", counts.pro],
     ["AMATOR", counts.amator],
     ["JUNIOR U15", counts.junior],
@@ -305,7 +303,7 @@ function renderRegistrations() {
     <tr>
       <td>${escapeHtml(formatDate(registration.created_at))}</td>
       <td><strong>${escapeHtml(registration.first_name)} ${escapeHtml(registration.last_name)}</strong></td>
-      <td>${escapeHtml(categoryLabel(categoryCode(registration)))}${Number(registration.group_number || 1) > 1 ? ` <small>· Grupa ${escapeHtml(registration.group_number)}</small>` : ""}</td>
+      <td>${escapeHtml(categoryLabel(categoryCode(registration)))}</td>
       <td>${escapeHtml(eventName(registration))}</td>
       <td><span class="status-chip status-${escapeHtml(registration.status)}">${escapeHtml(statusLabel(registration.status))}</span></td>
       <td>${escapeHtml(registration.birth_date || "-")}<br><small>${escapeHtml(ageAtEvent(registration))} lat</small></td>
@@ -837,23 +835,12 @@ async function loadCategoriesForSelectedEvent() {
   renderCategoriesManagement();
 }
 
-function groupBreakdownLabel(category) {
-  const groups = Array.isArray(category.groups) && category.groups.length ? category.groups : [{
-    groupNumber: 1,
-    occupiedCount: category.occupiedCount ?? 0,
-    capacity: category.capacity,
-  }];
-  return groups
-    .map((group) => `Grupa ${group.groupNumber}: ${group.occupiedCount}/${group.capacity ?? "∞"}`)
-    .join(" · ");
-}
-
 function renderCategoriesManagement() {
   if (!categoriesList) return;
   categoriesList.innerHTML = categoriesState.length ? categoriesState.map((category) => `
     <button class="management-item" type="button" data-category-id="${escapeHtml(category.id)}">
       <strong>${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name)}</strong>
-      <span><mark>${category.isActive ? "Aktywna" : "Nieaktywna"}</mark> · ${escapeHtml(groupBreakdownLabel(category))} · sort: ${escapeHtml(category.sortOrder ?? 0)}</span>
+      <span><mark>${category.isActive ? "Aktywna" : "Nieaktywna"}</mark> · ${escapeHtml(category.capacityLabel || `limit: ${category.capacity ?? "-"}`)} · rezerwowa: ${escapeHtml(category.waitlistCount ?? 0)} · sort: ${escapeHtml(category.sortOrder ?? 0)}</span>
       <small>${category.requiresLicense ? "Wymaga licencji" : "Walidacja wieku"} · zakres wieku: ${escapeHtml(category.ageMin ?? "-")} - ${escapeHtml(category.ageMax ?? "-")}</small>
     </button>
   `).join("") : '<p class="form-message">Brak danych do wyświetlenia dla tego wydarzenia.</p>';
