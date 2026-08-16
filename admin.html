@@ -105,6 +105,7 @@
           <div class="admin-actions">
             <button class="secondary-btn" id="refreshButton" type="button">Odśwież</button>
             <button class="primary-btn" id="exportButton" type="button">Eksport CSV</button>
+            <button class="primary-btn" id="manualRegistrationButton" type="button">+ Dodaj zgłoszenie ręcznie</button>
           </div>
 
           <p class="form-message" id="adminMessage" role="status"></p>
@@ -400,6 +401,67 @@
       <div class="modal-shell">
         <button class="modal-close" id="modalCloseButton" type="button" aria-label="Zamknij">×</button>
         <div id="registrationDetails"></div>
+      </div>
+    </dialog>
+
+    <dialog class="registration-modal" id="manualRegistrationModal">
+      <div class="modal-shell">
+        <button class="modal-close" id="manualRegistrationCloseButton" type="button" aria-label="Zamknij">×</button>
+        <div class="modal-header">
+          <p class="eyebrow">Awaryjny zapis</p>
+          <h2>Dodaj zgłoszenie ręcznie</h2>
+          <p>Użyj gdy publiczny formularz jest niedostępny albo zawodnik zgłasza się na miejscu. Zgłoszenie trafi od razu jako zaakceptowane (chyba że limit miejsc jest wyczerpany — wtedy na listę rezerwową).</p>
+        </div>
+        <form id="manualRegistrationForm">
+          <div class="field-grid">
+            <label>Wydarzenie
+              <select name="eventId" id="manualEventSelect" required></select>
+            </label>
+            <label>Kategoria
+              <select name="categoryId" id="manualCategorySelect" required></select>
+            </label>
+            <label>Imię
+              <input name="firstName" required />
+            </label>
+            <label>Nazwisko
+              <input name="lastName" required />
+            </label>
+            <label>Data urodzenia
+              <input name="birthDate" type="date" required />
+            </label>
+            <label>Płeć
+              <select name="gender" required>
+                <option value="">Wybierz</option>
+                <option value="female">Kobieta</option>
+                <option value="male">Mężczyzna</option>
+              </select>
+            </label>
+            <label>Telefon <span>opcjonalnie</span>
+              <input name="phone" type="tel" />
+            </label>
+            <label>E-mail <span>opcjonalnie</span>
+              <input name="email" type="email" />
+            </label>
+            <label>Miasto <span>opcjonalnie</span>
+              <input name="city" />
+            </label>
+            <label>Klub / team <span>opcjonalnie</span>
+              <input name="clubTeam" />
+            </label>
+            <label>UCI ID / numer licencji <span>opcjonalnie</span>
+              <input name="licenseNumber" />
+            </label>
+            <label class="full">Notatka organizatora <span>opcjonalnie</span>
+              <input name="note" placeholder="np. dopisany na miejscu, płatność gotówką" />
+            </label>
+            <label class="switch-field full"><input name="autoAccept" type="checkbox" checked /> Zaakceptuj od razu (odznacz, żeby zostawić do weryfikacji)</label>
+            <label class="switch-field full"><input name="overrideAgeRule" type="checkbox" /> Pomiń walidację wieku dla kategorii</label>
+          </div>
+          <div class="admin-actions">
+            <button class="primary-btn" type="submit">Zapisz zawodnika</button>
+          </div>
+          <p class="form-message" id="manualRegistrationMessage" role="status"></p>
+        </form>
       </div>
     </dialog>
 

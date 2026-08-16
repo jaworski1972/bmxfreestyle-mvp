@@ -63,6 +63,13 @@ const smsRefreshButton = document.querySelector("#smsRefreshButton");
 const smsSendButton = document.querySelector("#smsSendButton");
 const smsMessageStatus = document.querySelector("#smsMessageStatus");
 const smsHistoryList = document.querySelector("#smsHistoryList");
+const manualRegistrationButton = document.querySelector("#manualRegistrationButton");
+const manualRegistrationModal = document.querySelector("#manualRegistrationModal");
+const manualRegistrationCloseButton = document.querySelector("#manualRegistrationCloseButton");
+const manualRegistrationForm = document.querySelector("#manualRegistrationForm");
+const manualEventSelect = document.querySelector("#manualEventSelect");
+const manualCategorySelect = document.querySelector("#manualCategorySelect");
+const manualRegistrationMessage = document.querySelector("#manualRegistrationMessage");
 
 let registrationsState = [];
 let eventsState = [];
@@ -1382,6 +1389,97 @@ logoutButton.addEventListener("click", () => {
   control?.addEventListener("change", renderRegistrations);
 });
 
+async function loadManualCategories(eventId) {
+  manualCategorySelect.innerHTML = "";
+  if (!eventId) return;
+  try {
+    const response = await fetch(`/api/categories?eventId=${encodeURIComponent(eventId)}&includeInactive=true`, { headers: authHeaders() });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Nie udało się pobrać kategorii.");
+    const categories = payload.categories || [];
+    manualCategorySelect.innerHTML = categories.map((category) => (
+      `<option value="${escapeHtml(category.id)}">${escapeHtml(categoryLabel(category.code))} · ${escapeHtml(category.name)}${category.isActive ? "" : " (nieaktywna)"}</option>`
+    )).join("");
+  } catch (error) {
+    setMessage(manualRegistrationMessage, error.message || "Nie udało się pobrać kategorii.", "error");
+  }
+}
+
+async function openManualRegistrationModal() {
+  manualRegistrationForm.reset();
+  manualRegistrationForm.elements.autoAccept.checked = true;
+  setMessage(manualRegistrationMessage, "", "info");
+
+  if (!eventsState.length) {
+    try {
+      await loadEvents();
+    } catch (error) {
+      setMessage(manualRegistrationMessage, "Nie udało się pobrać listy wydarzeń.", "error");
+    }
+  }
+
+  manualEventSelect.innerHTML = eventsState.map((event) => (
+    `<option value="${escapeHtml(event.id)}">${escapeHtml(event.name)}</option>`
+  )).join("");
+
+  const preselectedEventId = adminEventFilter.value && eventsState.some((event) => event.id === adminEventFilter.value)
+    ? adminEventFilter.value
+    : eventsState[0]?.id;
+  if (preselectedEventId) manualEventSelect.value = preselectedEventId;
+
+  await loadManualCategories(manualEventSelect.value);
+
+  if (typeof manualRegistrationModal.showModal === "function") {
+    manualRegistrationModal.showModal();
+    manualRegistrationModal.classList.add("is-open");
+  }
+}
+
+async function handleManualRegistrationSubmit(submitEvent) {
+  submitEvent.preventDefault();
+  const form = manualRegistrationForm;
+  if (!manualCategorySelect.value) {
+    setMessage(manualRegistrationMessage, "Wybierz kategorię.", "error");
+    return;
+  }
+
+  const payload = {
+    eventId: manualEventSelect.value,
+    categoryId: manualCategorySelect.value,
+    firstName: form.elements.firstName.value.trim(),
+    lastName: form.elements.lastName.value.trim(),
+    birthDate: form.elements.birthDate.value,
+    gender: form.elements.gender.value,
+    phone: form.elements.phone.value.trim(),
+    email: form.elements.email.value.trim(),
+    city: form.elements.city.value.trim(),
+    clubTeam: form.elements.clubTeam.value.trim(),
+    licenseNumber: form.elements.licenseNumber.value.trim(),
+    note: form.elements.note.value.trim(),
+    autoAccept: form.elements.autoAccept.checked,
+    overrideAgeRule: form.elements.overrideAgeRule.checked,
+  };
+
+  setMessage(manualRegistrationMessage, "Zapisuję zgłoszenie...", "info");
+  try {
+    const response = await fetch("/api/admin-register", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      setMessage(manualRegistrationMessage, result.error || "Nie udało się zapisać zgłoszenia.", "error");
+      return;
+    }
+    setMessage(manualRegistrationMessage, result.message || "Zgłoszenie zapisane.", "success");
+    await loadRegistrations();
+    window.setTimeout(() => manualRegistrationModal.close(), 900);
+  } catch (error) {
+    setMessage(manualRegistrationMessage, error.message || "Nie udało się zapisać zgłoszenia.", "error");
+  }
+}
+
 registrationsTable.addEventListener("click", (event) => {
   const button = event.target.closest("[data-registration-id]");
   if (!button) return;
@@ -1393,6 +1491,12 @@ refreshButton.addEventListener("click", loadRegistrations);
 exportButton.addEventListener("click", exportCsv);
 modalCloseButton.addEventListener("click", () => modal.close());
 modal.addEventListener("close", () => modal.classList.remove("is-open"));
+
+manualRegistrationButton.addEventListener("click", openManualRegistrationModal);
+manualRegistrationCloseButton.addEventListener("click", () => manualRegistrationModal.close());
+manualRegistrationModal.addEventListener("close", () => manualRegistrationModal.classList.remove("is-open"));
+manualEventSelect.addEventListener("change", () => loadManualCategories(manualEventSelect.value));
+manualRegistrationForm.addEventListener("submit", handleManualRegistrationSubmit);
 
 newEventButton.addEventListener("click", resetEventForm);
 refreshEventsButton.addEventListener("click", loadConfiguration);

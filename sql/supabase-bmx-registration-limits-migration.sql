@@ -19,9 +19,10 @@ create or replace function public.registration_athlete_identity_key(
 returns text
 language sql
 immutable
+set search_path = public, extensions
 as $$
   select encode(
-    digest(
+    extensions.digest(
       public.registration_identity_part(first_name_input)
         || '|'
         || public.registration_identity_part(last_name_input)

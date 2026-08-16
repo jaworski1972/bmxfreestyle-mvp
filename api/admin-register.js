@@ -1,0 +1,361 @@
+const { randomUUID } = require("crypto");
+const { cleanText, getSupabase, json, readBody } = require("../lib/supabase");
+const { requireAdmin } = require("../lib/admin-auth");
+const { normalizePolishPhone } = require("../lib/phone-normalization");
+const { confirmationUrl, sendRegistrationReceivedEmail } = require("../lib/mail");
+const { enabled, sendSmsNotification } = require("../lib/sms");
+const {
+  ACCEPTED_REGISTRATION_MESSAGE,
+  DUPLICATE_REGISTRATION_MESSAGE,
+  WAITLIST_REGISTRATION_MESSAGE,
+  duplicateIdentityMatches,
+  statusForCapacity,
+} = require("../lib/registration-limits");
+
+function requiredString(body, key) {
+  return cleanText(body[key], 220);
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeGender(value) {
+  const gender = String(value || "").trim().toLowerCase();
+  return ["female", "male"].includes(gender) ? gender : "";
+}
+
+function parseDate(value) {
+  const raw = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const date = new Date(`${raw}T12:00:00Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function ageAtDate(birthDateValue, targetDateValue) {
+  const birthDate = parseDate(birthDateValue);
+  const targetDatePart = String(targetDateValue || "").slice(0, 10);
+  const targetDate = parseDate(targetDatePart) || new Date(targetDateValue || Date.now());
+  if (!birthDate || Number.isNaN(targetDate.getTime())) return null;
+
+  let age = targetDate.getUTCFullYear() - birthDate.getUTCFullYear();
+  const monthDiff = targetDate.getUTCMonth() - birthDate.getUTCMonth();
+  const dayDiff = targetDate.getUTCDate() - birthDate.getUTCDate();
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) age -= 1;
+  return age;
+}
+
+function categoryAgeValidationError(category, age) {
+  const code = String(category?.code || "").toUpperCase();
+  if (code === "JUNIOR" && age >= 15) {
+    return {
+      code: "junior_age_mismatch",
+      error: "Kategoria JUNIOR U15 jest przeznaczona dla zawodników, którzy w dniu zawodów nie ukończyli 15 lat. Wybierz kategorię AMATOR.",
+    };
+  }
+  if (code === "AMATOR" && age < 15) {
+    return {
+      code: "amator_age_mismatch",
+      error: "Zawodnik poniżej 15. roku życia powinien zostać zgłoszony do kategorii JUNIOR U15.",
+    };
+  }
+  if (code === "PRO" && age < 16) {
+    return {
+      code: "pro_age_mismatch",
+      error: "Kategoria PRO jest przeznaczona dla zawodników powyżej 15. roku życia. Wybierz kategorię JUNIOR U15.",
+    };
+  }
+  return null;
+}
+
+async function fetchEvent(supabase, body) {
+  const eventId = cleanText(body.eventId, 80);
+  const eventSlug = cleanText(body.eventSlug, 160);
+  let query = supabase.from("events").select("*");
+  if (eventId) query = query.eq("id", eventId);
+  else if (eventSlug) query = query.eq("slug", eventSlug);
+  else return null;
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+async function fetchCategory(supabase, eventId, body) {
+  const categoryId = cleanText(body.categoryId, 80);
+  const categoryCode = cleanText(body.categoryCode, 40).toUpperCase();
+  let query = supabase
+    .from("event_categories")
+    .select("*")
+    .eq("event_id", eventId);
+
+  if (categoryId) query = query.eq("id", categoryId);
+  else if (categoryCode) query = query.eq("code", categoryCode);
+  else return null;
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+async function findDuplicate(supabase, eventId, payload) {
+  const { data, error } = await supabase
+    .from("registrations")
+    .select("id,first_name,last_name,birth_date,status")
+    .eq("event_id", eventId)
+    .eq("birth_date", payload.birth_date)
+    .limit(50);
+
+  if (error) throw error;
+
+  return (data || []).find((registration) => duplicateIdentityMatches(registration, payload)) || null;
+}
+
+async function occupiedCountForCategory(supabase, categoryId) {
+  const { count, error } = await supabase
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", categoryId)
+    .in("status", ["pending_review", "accepted", "needs_info"]);
+  if (error) throw error;
+  return count || 0;
+}
+
+function isMissingRpc(error) {
+  const message = String(error?.message || "");
+  return message.includes("create_registration_with_limits") && (
+    message.includes("not exist")
+    || message.includes("Could not find")
+    || message.includes("schema cache")
+  );
+}
+
+function rpcRegistrationResult(result) {
+  const payload = Array.isArray(result) ? result[0] : result;
+  if (!payload || typeof payload !== "object") return null;
+  return payload;
+}
+
+async function insertRegistrationWithFallback(supabase, { registration, event, category }) {
+  const { data: rpcData, error: rpcError } = await supabase.rpc("create_registration_with_limits", {
+    registration_payload: registration,
+  });
+
+  if (rpcError && !isMissingRpc(rpcError)) throw rpcError;
+
+  if (!rpcError) {
+    const result = rpcRegistrationResult(rpcData);
+    if (!result?.ok) {
+      return {
+        ok: false,
+        httpStatus: result?.code === "duplicate_registration" ? 409 : 400,
+        code: result?.code || "registration_rejected",
+        error: result?.error || "Nie udało się zapisać zgłoszenia.",
+      };
+    }
+    return {
+      ok: true,
+      data: {
+        id: result.id,
+        status: result.status,
+        confirmation_token: result.confirmation_token,
+        created_at: result.created_at,
+      },
+      message: result.message,
+    };
+  }
+
+  const duplicate = await findDuplicate(supabase, event.id, registration);
+  if (duplicate) {
+    return {
+      ok: false,
+      httpStatus: 409,
+      code: "duplicate_registration",
+      error: DUPLICATE_REGISTRATION_MESSAGE,
+      duplicateId: duplicate.id,
+    };
+  }
+
+  const capacityDecision = statusForCapacity(category, await occupiedCountForCategory(supabase, category.id));
+  const { data, error } = await supabase
+    .from("registrations")
+    .insert({ ...registration, status: capacityDecision.status })
+    .select("id,status,confirmation_token,created_at")
+    .single();
+
+  if (error) throw error;
+  return {
+    ok: true,
+    data,
+    message: capacityDecision.message,
+  };
+}
+
+module.exports = async function handler(request, response) {
+  if (request.method !== "POST") {
+    json(response, 405, { ok: false, error: "Method not allowed." });
+    return;
+  }
+
+  if (!requireAdmin(request)) {
+    json(response, 401, { ok: false, error: "Brak autoryzacji." });
+    return;
+  }
+
+  try {
+    const body = readBody(request);
+    const required = ["firstName", "lastName", "birthDate"];
+    const missing = required.filter((key) => !requiredString(body, key));
+
+    if (!requiredString(body, "eventId") && !requiredString(body, "eventSlug")) missing.push("eventId");
+    if (!requiredString(body, "categoryId") && !requiredString(body, "categoryCode")) missing.push("categoryId");
+    if (missing.length) {
+      json(response, 400, {
+        ok: false,
+        code: "missing_required_fields",
+        error: "Brakuje wymaganych pól zgłoszenia.",
+        missing,
+      });
+      return;
+    }
+
+    if (!parseDate(body.birthDate)) {
+      json(response, 400, { ok: false, code: "invalid_birth_date", error: "Podaj poprawną datę urodzenia." });
+      return;
+    }
+
+    const gender = normalizeGender(body.gender);
+    if (!gender) {
+      json(response, 400, {
+        ok: false,
+        code: "invalid_gender",
+        error: "Wybierz płeć zawodnika: kobieta albo mężczyzna.",
+        missing: ["gender"],
+      });
+      return;
+    }
+
+    let normalizedPhone = null;
+    if (requiredString(body, "phone")) {
+      const phone = normalizePolishPhone(body.phone);
+      if (!phone.isValid) {
+        json(response, 400, { ok: false, code: "invalid_phone", error: "Podaj prawidłowy numer telefonu (albo zostaw puste).", reason: phone.reason });
+        return;
+      }
+      normalizedPhone = phone.normalizedPhone;
+    }
+
+    const supabase = getSupabase();
+    const event = await fetchEvent(supabase, body);
+    if (!event) {
+      json(response, 404, { ok: false, code: "event_not_found", error: "Nie znaleziono wybranego wydarzenia." });
+      return;
+    }
+
+    const eventAge = ageAtDate(body.birthDate, event.starts_at);
+    if (eventAge === null || eventAge < 0) {
+      json(response, 400, { ok: false, code: "invalid_birth_date", error: "Nie udało się obliczyć wieku zawodnika dla daty wydarzenia." });
+      return;
+    }
+
+    const category = await fetchCategory(supabase, event.id, body);
+    if (!category) {
+      json(response, 400, { ok: false, code: "category_not_available", error: "Nie znaleziono wybranej kategorii." });
+      return;
+    }
+
+    const minor = eventAge < 18;
+    const categoryAgeError = categoryAgeValidationError(category, eventAge);
+    if (categoryAgeError && !body.overrideAgeRule) {
+      json(response, 400, { ok: false, ...categoryAgeError });
+      return;
+    }
+
+    const registration = {
+      event_id: event.id,
+      category_id: category.id,
+      status: "pending_review",
+      confirmation_token: randomUUID(),
+      first_name: requiredString(body, "firstName"),
+      last_name: requiredString(body, "lastName"),
+      birth_date: requiredString(body, "birthDate"),
+      email: normalizeEmail(body.email) || null,
+      phone: normalizedPhone,
+      city: cleanText(body.city, 120) || null,
+      country: cleanText(body.country, 80) || "Polska",
+      gender,
+      club_team: cleanText(body.clubTeam, 160) || null,
+      license_type: cleanText(body.licenseType, 80) || null,
+      license_number: cleanText(body.licenseNumber, 120) || null,
+      uci_id: cleanText(body.uciId, 120) || null,
+      federation_country: cleanText(body.federationCountry, 80) || null,
+      guardian_required: minor,
+      guardian_full_name: cleanText(body.guardianFullName, 180) || null,
+      guardian_email: normalizeEmail(body.guardianEmail) || null,
+      guardian_phone: cleanText(body.guardianPhone, 40) || null,
+      guardian_relationship: cleanText(body.guardianRelationship, 80) || null,
+      consents: [],
+      source: "admin_manual",
+      status_note: cleanText(body.note, 500) || "Zgłoszenie dodane ręcznie przez organizatora.",
+    };
+
+    const insertResult = await insertRegistrationWithFallback(supabase, { registration, event, category });
+    if (!insertResult.ok) {
+      json(response, insertResult.httpStatus || 400, {
+        ok: false,
+        code: insertResult.code,
+        error: insertResult.error,
+        duplicateId: insertResult.duplicateId,
+      });
+      return;
+    }
+
+    let data = insertResult.data;
+    const autoAccept = body.autoAccept !== false;
+    if (autoAccept && data.status === "pending_review") {
+      const { data: statusData, error: statusError } = await supabase.rpc("update_registration_status_with_limits", {
+        registration_id_input: data.id,
+        status_input: "accepted",
+        status_note_input: registration.status_note,
+      });
+      const statusResult = rpcRegistrationResult(statusData);
+      if (!statusError && statusResult?.ok) {
+        data = { ...data, status: statusResult.status };
+      }
+    }
+
+    const finalRegistration = { ...registration, status: data.status };
+    const storedRegistration = { ...finalRegistration, id: data.id, confirmation_token: data.confirmation_token };
+
+    let email = { sent: false, skipped: true };
+    try {
+      email = await sendRegistrationReceivedEmail({ event, category, registration: storedRegistration });
+    } catch (emailError) {
+      console.error("BMX Freestyle admin registration email failed", emailError);
+      email = { sent: false, skipped: true, error: emailError.message };
+    }
+
+    const confirmUrl = confirmationUrl(data.confirmation_token);
+    const smsStatus = data.status === "waitlist" ? "lista rezerwowa" : "zaakceptowane";
+    const smsMessage = `BMX Series: zgłoszenie dodane przez organizatora. Status: ${smsStatus}. Potwierdzenie i QR: ${confirmUrl}`;
+    const sms = await sendSmsNotification({
+      supabase,
+      event,
+      registration: storedRegistration,
+      message: smsMessage,
+      reason: "registration_disabled",
+      force: enabled("SEND_SMS_ON_REGISTRATION"),
+    });
+
+    json(response, 201, {
+      ok: true,
+      registration: data,
+      status: data.status,
+      email,
+      sms,
+      message: data.status === "waitlist" ? WAITLIST_REGISTRATION_MESSAGE : ACCEPTED_REGISTRATION_MESSAGE,
+    });
+  } catch (error) {
+    json(response, 500, { ok: false, error: error.message || "Nie udało się zapisać zgłoszenia." });
+  }
+};
